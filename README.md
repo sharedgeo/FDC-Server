@@ -3,7 +3,7 @@
 A Ruby on Rails based api server 
 
 *   Ruby version: 3.2+
-*   Rails version: 7.3.x
+*   Rails version: 7.1.x
 *   Authentication and Authorization: JWT token
 
 ## Configuration
