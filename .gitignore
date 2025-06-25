@@ -32,6 +32,7 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 .aider*
+/client-example/.aider*
 
 client-example/node_moodules*
 client-example/node_modules
