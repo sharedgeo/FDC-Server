@@ -5,6 +5,7 @@ import { ProtectedRoute } from './ProtectedRoute';
 import DocumentUploader from './DocumentUploader';
 import Profile, { type UserProfileData } from './Profile';
 import MapComponent from './Map';
+import TicketSearch from './TicketSearch';
 
 // A component for the public home page
 function Home() {
@@ -48,7 +49,7 @@ function UserProfile() {
     setProfileError(null);
 
     try {
-      const response = await fetch("http://localhost:3000/user/me", {
+      const response = await fetch("http://localhost:3000/v1/profile", {
         headers: {
           Authorization: `Bearer ${auth.user.access_token}`,
         },
@@ -87,7 +88,7 @@ function UserProfile() {
     setApiError(null);
     if (auth.user?.access_token) {
       try {
-        const response = await fetch('http://localhost:3000/debug_jwt', {
+        const response = await fetch('http://localhost:3000/v1/debug_jwt', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${auth.user.access_token}`,
@@ -121,7 +122,7 @@ function UserProfile() {
     setApiError(null);
 
     try {
-      const response = await fetch("http://localhost:3000/user/features", {
+      const response = await fetch("http://localhost:3000/v1/features", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,13 +159,12 @@ function UserProfile() {
     setApiError(null);
 
     try {
-      const response = await fetch("http://localhost:3000/user/features", {
+      const response = await fetch(`http://localhost:3000/v1/features/${featureId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.user.access_token}`,
         },
-        body: JSON.stringify({ feature_ids: [featureId] }),
       });
 
       const result = await response.json();
@@ -195,13 +195,12 @@ function UserProfile() {
     setApiError(null);
 
     try {
-      const response = await fetch("http://localhost:3000/user/documents", {
+      const response = await fetch(`http://localhost:3000/v1/documents/${signedId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.user.access_token}`,
         },
-        body: JSON.stringify({ document_signed_ids: [signedId] }),
       });
 
       const result = await response.json();
@@ -265,11 +264,16 @@ function UserProfile() {
         </div>
       )}
 
+      <TicketSearch />
+
       <DocumentUploader onUploadSuccess={handleUploadSuccess} />
 
       <hr style={{ margin: '20px 0' }} />
-      <h3>Map</h3>
-      <MapComponent features={profile?.features} onSaveFeatures={saveFeatures} />
+      <h3>My Features Map</h3>
+      <MapComponent
+        features={profile?.features}
+        onSaveFeatures={saveFeatures}
+      />
 
       <Profile
         profile={profile}

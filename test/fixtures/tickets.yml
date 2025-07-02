@@ -1,0 +1,17 @@
+one:
+  ticket_no: "TICKET-001"
+  ticket_type: "EXCAVATION"
+  ticket_url: "http://example.com/tickets/1"
+  geom: "SRID=6344;MULTIPOLYGON(((0 0, 10 0, 10 10, 0 10, 0 0)))"
+  publish_date: <%= Time.current.to_s %>
+  purge_date: <%= (Time.current + 30.days).to_s %>
+  created_at: <%= Time.current.to_s %>
+
+two:
+  ticket_no: "TICKET-002"
+  ticket_type: "DEMOLITION"
+  ticket_url: "http://example.com/tickets/2"
+  geom: "SRID=6344;MULTIPOLYGON(((20 20, 30 20, 30 30, 20 30, 20 20)))"
+  publish_date: <%= Time.current.to_s %>
+  purge_date: <%= (Time.current + 60.days).to_s %>
+  created_at: <%= Time.current.to_s %>

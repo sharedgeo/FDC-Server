@@ -1,3 +1,9 @@
 OIDC_ISSUER_URL=https://sso.sharedgeo.org/realms/SharedGeo
 OIDC_API_AUDIENCE=uumpt-sharedgeo-net
 OIDC_JWKS_URL=https://sso.sharedgeo.org/realms/SharedGeo/protocol/openid-connect/certs
+
+PG_DB=fdc
+PG_USER=
+PG_PASS=
+PG_HOST=
+PG_PORT=5432

@@ -23,7 +23,7 @@ const DocumentUploader = ({ onUploadSuccess }: DocumentUploaderProps) => {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch("http://localhost:3000/user/documents", {
+      const response = await fetch("http://localhost:3000/v1/documents", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,7 +39,7 @@ const DocumentUploader = ({ onUploadSuccess }: DocumentUploaderProps) => {
       }
 
       console.log("Attachment successful:", result);
-      setSuccessMessage(`Successfully uploaded and attached ${result.data.documents.length} document(s).`);
+      setSuccessMessage(`Successfully uploaded and attached ${signedIds.length} document(s).`);
       onUploadSuccess();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";

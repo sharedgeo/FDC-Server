@@ -25,7 +25,10 @@ interface MapComponentProps {
 const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<Map | null>(null);
-  const vectorSource = useRef(new VectorSource({ wrapX: false }));
+  
+  // Source for user's saved features
+  const userVectorSource = useRef(new VectorSource({ wrapX: false }));
+
   const drawInteraction = useRef<Draw | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const newFeatures = useRef<Feature<Geometry>[]>([]);
@@ -39,8 +42,8 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
     // Coordinates for Minnesota
     const minnesotaCenter = fromLonLat([-94.6859, 46.7296]);
 
-    const vectorLayer = new VectorLayer({
-      source: vectorSource.current,
+    const userVectorLayer = new VectorLayer({
+      source: userVectorSource.current,
     });
 
     const map = new Map({
@@ -49,7 +52,7 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
         new TileLayer({
           source: new OSM(),
         }),
-        vectorLayer,
+        userVectorLayer,
       ],
       view: new View({
         center: minnesotaCenter,
@@ -66,10 +69,10 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
     };
   }, []);
 
-  // Effect to load existing features
+  // Effect to load existing user features
   useEffect(() => {
     if (!mapInstance.current) return;
-    vectorSource.current.clear();
+    userVectorSource.current.clear();
     newFeatures.current = [];
 
     if (features && features.length > 0) {
@@ -86,7 +89,7 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
         }
       }).filter(f => f !== null) as Feature<Geometry>[];
 
-      vectorSource.current.addFeatures(olFeatures);
+      userVectorSource.current.addFeatures(olFeatures);
     }
   }, [features]);
 
@@ -100,7 +103,7 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
 
     if (isDrawing) {
       drawInteraction.current = new Draw({
-        source: vectorSource.current,
+        source: userVectorSource.current,
         type: 'Polygon',
       });
 
@@ -126,8 +129,8 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
 
   const clearDrawing = () => {
     newFeatures.current.forEach((feature) => {
-      if (vectorSource.current.hasFeature(feature)) {
-        vectorSource.current.removeFeature(feature);
+      if (userVectorSource.current.hasFeature(feature)) {
+        userVectorSource.current.removeFeature(feature);
       }
     });
     newFeatures.current = [];

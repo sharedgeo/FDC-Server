@@ -11,6 +11,12 @@ A Ruby on Rails based api server
 *   Rename `env_example` to `.env` and fill in the required environment variables:
 
     ```bash
+    PG_DB=
+    PG_USER=
+    PG_PASS=
+    PG_HOST=
+    PG_PORT=5432
+
     OIDC_ISSUER_URL=
     OIDC_API_AUDIENCE
     OIDC_JWKS_URL=
@@ -26,11 +32,17 @@ A Ruby on Rails based api server
 
 1.  Clone the repository.
 2.  Install dependencies: `bundle install`
-3.  Start the server: `bin/rails server`
+3.  Seed some data: `bin/rails db:seed`
+4.  Start the server: `bin/rails server`
 
-### Running the client-example 
+### Running the client example 
 
+*   Created with node 24.1.0
 *   `cd client-example`
 *   `npm install`
 *   `npm run dev`
 
+### Running tests
+
+*   `RAILS_ENV=test bundle exec rails db:drop db:create db:schema:load`
+*   `bin/rails test`

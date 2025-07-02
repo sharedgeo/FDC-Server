@@ -59,6 +59,9 @@ GEM
       activemodel (= 7.1.5.1)
       activesupport (= 7.1.5.1)
       timeout (>= 0.4.0)
+    activerecord-postgis-adapter (9.0.2)
+      activerecord (~> 7.1.0)
+      rgeo-activerecord (~> 7.0.0)
     activestorage (7.1.5.1)
       actionpack (= 7.1.5.1)
       activejob (= 7.1.5.1)
@@ -122,6 +125,7 @@ GEM
     mini_mime (1.1.5)
     minitest (5.25.5)
     msgpack (1.8.0)
+    multi_json (1.15.0)
     mutex_m (0.3.0)
     net-imap (0.5.8)
       date
@@ -149,6 +153,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.8-x86_64-linux-musl)
       racc (~> 1.4)
+    pg (1.5.9)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -204,15 +209,14 @@ GEM
       psych (>= 4.0.0)
     reline (0.6.1)
       io-console (~> 0.5)
+    rgeo (3.0.1)
+    rgeo-activerecord (7.0.1)
+      activerecord (>= 5.0)
+      rgeo (>= 1.0.0)
+    rgeo-geojson (2.2.0)
+      multi_json (~> 1.15)
+      rgeo (>= 1.0.0)
     securerandom (0.4.1)
-    sqlite3 (2.7.0-aarch64-linux-gnu)
-    sqlite3 (2.7.0-aarch64-linux-musl)
-    sqlite3 (2.7.0-arm-linux-gnu)
-    sqlite3 (2.7.0-arm-linux-musl)
-    sqlite3 (2.7.0-arm64-darwin)
-    sqlite3 (2.7.0-x86_64-darwin)
-    sqlite3 (2.7.0-x86_64-linux-gnu)
-    sqlite3 (2.7.0-x86_64-linux-musl)
     stringio (3.1.7)
     thor (1.3.2)
     timeout (0.4.3)
@@ -236,15 +240,16 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  activerecord-postgis-adapter
   bootsnap
   debug
   dotenv-rails
   jwt
+  pg
   puma (>= 5.0)
   rack-cors
   rails (~> 7.1.5)
-  sqlite3 (>= 1.4)
-  tzinfo-data
+  rgeo-geojson
 
 RUBY VERSION
    ruby 3.2.3p157

@@ -10,7 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_06_24_025622) do
+ActiveRecord::Schema[7.1].define(version: 2025_06_29_015308) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
+  enable_extension "postgis"
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -40,7 +44,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_24_025622) do
   end
 
   create_table "features", force: :cascade do |t|
-    t.integer "user_id"
+    t.bigint "user_id"
     t.text "geom"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -48,9 +52,14 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_24_025622) do
   end
 
   create_table "tickets", force: :cascade do |t|
-    t.string "ticket_number"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.text "ticket_no"
+    t.text "ticket_type"
+    t.text "ticket_url"
+    t.geometry "geom", limit: {:srid=>6344, :type=>"multi_polygon"}
+    t.datetime "publish_date", precision: nil
+    t.datetime "purge_date", precision: nil
+    t.datetime "created_at", precision: nil
+    t.index ["geom"], name: "index_tickets_on_geom", using: :gist
   end
 
   create_table "users", force: :cascade do |t|
