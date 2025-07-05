@@ -16,7 +16,7 @@ class ApplicationController < ActionController::API
     begin
       decoded_token = JsonWebToken.verify(token)
       email = decoded_token.dig(:payload, 'email')
-      @current_user = User.includes(:features, documents_attachments: :blob).find_by(email_address: email)
+      @current_user = User.includes(:features, documents_attachments: :blob).find_or_create_by(email_address: email)
     rescue StandardError => e
       Rails.logger.error("Authentication error: #{e.message}")
       nil

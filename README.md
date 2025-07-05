@@ -31,8 +31,8 @@ A Ruby on Rails based api server
 ### Development Setup
 
 1.  Clone the repository.
-2.  Install dependencies: `bundle install`
-3.  Seed some data: `bin/rails db:seed`
+2.  Install dependencies: `bundle install`; OS deps include postgresql-client, libpq-dev
+3.  Create the DB; seed some data: `bin/rails db:create db:schema:load db:seed`
 4.  Start the server: `bin/rails server`
 
 ### Running the client example 
