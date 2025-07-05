@@ -1,5 +1,5 @@
 interface TicketDetailsProps {
-  properties: Record<string, any> | null;
+  properties: Record<string, unknown> | null;
 }
 
 const TicketDetails = ({ properties }: TicketDetailsProps) => {

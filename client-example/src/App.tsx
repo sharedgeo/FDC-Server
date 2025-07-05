@@ -1,11 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { ProtectedRoute } from './ProtectedRoute';
-import DocumentUploader from './DocumentUploader';
-import Profile, { type UserProfileData } from './Profile';
-import MapComponent from './Map';
-import TicketSearch from './TicketSearch';
+import ProfilePage from './pages/ProfilePage';
 
 // A component for the public home page
 function Home() {
@@ -18,270 +15,6 @@ function Home() {
       {!auth.isAuthenticated && (
         <button onClick={() => auth.signinRedirect()}>Log In</button>
       )}
-    </>
-  );
-}
-
-interface ApiResponse {
-    status: 'success' | 'error';
-    data?: UserProfileData;
-    message?: string;
-}
-
-// A component for the protected profile page
-function UserProfile() {
-  const auth = useAuth();
-  const [apiResponse, setApiResponse] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
-
-  const [profile, setProfile] = useState<UserProfileData | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState<boolean>(true);
-
-  const fetchProfile = async () => {
-    if (!auth.user?.access_token) {
-      setIsProfileLoading(false);
-      setProfileError("Not authenticated or access token not available.");
-      return;
-    }
-
-    setIsProfileLoading(true);
-    setProfileError(null);
-
-    try {
-      const response = await fetch("http://localhost:3000/v1/profile", {
-        headers: {
-          Authorization: `Bearer ${auth.user.access_token}`,
-        },
-      });
-
-      const result: ApiResponse = await response.json();
-
-      if (!response.ok) {
-          throw new Error(result.message || `HTTP error! status: ${response.status}`);
-      }
-
-      if (result.status === 'success' && result.data) {
-          setProfile(result.data);
-      } else {
-          throw new Error(result.message || "Failed to fetch profile data.");
-      }
-    } catch (e) {
-      if (e instanceof Error) {
-          setProfileError(e.message);
-      } else {
-          setProfileError("An unknown error occurred.");
-      }
-    } finally {
-      setIsProfileLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (auth.isAuthenticated) {
-        fetchProfile();
-    }
-  }, [auth.isAuthenticated, auth.user?.access_token]);
-
-  const callApi = async () => {
-    setApiResponse(null);
-    setApiError(null);
-    if (auth.user?.access_token) {
-      try {
-        const response = await fetch('http://localhost:3000/v1/debug_jwt', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${auth.user.access_token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setApiResponse(JSON.stringify(data, null, 2));
-        } else {
-          setApiError(`API returned ${response.status}: ${response.statusText}`);
-        }
-      } catch (error) {
-        if (error instanceof Error) {
-          setApiError(error.message);
-        } else {
-          setApiError('An unknown error occurred.');
-        }
-      }
-    }
-  };
-
-  const handleUploadSuccess = () => {
-    fetchProfile();
-  };
-
-  const saveFeatures = async (features: { geom: string }[]) => {
-    if (!auth.user?.access_token) {
-      setApiError("Not authenticated or access token not available.");
-      return;
-    }
-    setApiError(null);
-
-    try {
-      const response = await fetch("http://localhost:3000/v1/features", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.user.access_token}`,
-        },
-        body: JSON.stringify({ features }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-          throw new Error(result.message || `HTTP error! status: ${response.status}`);
-      }
-
-      if (result.status === 'success') {
-          fetchProfile(); // Refresh profile to get new feature list
-      } else {
-          throw new Error(result.message || "Failed to save features.");
-      }
-    } catch (e) {
-      if (e instanceof Error) {
-          setApiError(e.message);
-      } else {
-          setApiError("An unknown error occurred while saving features.");
-      }
-    }
-  };
-
-  const handleDeleteFeature = async (featureId: number) => {
-    if (!auth.user?.access_token) {
-      setApiError("Not authenticated or access token not available.");
-      return;
-    }
-    setApiError(null);
-
-    try {
-      const response = await fetch(`http://localhost:3000/v1/features/${featureId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.user.access_token}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-          throw new Error(result.message || `HTTP error! status: ${response.status}`);
-      }
-
-      if (result.status === 'success') {
-          fetchProfile(); // Refresh profile to get updated feature list
-      } else {
-          throw new Error(result.message || "Failed to delete feature.");
-      }
-    } catch (e) {
-      if (e instanceof Error) {
-          setApiError(e.message);
-      } else {
-          setApiError("An unknown error occurred while deleting the feature.");
-      }
-    }
-  };
-
-  const handleDeleteDocument = async (signedId: string) => {
-    if (!auth.user?.access_token) {
-      setApiError("Not authenticated or access token not available.");
-      return;
-    }
-    setApiError(null);
-
-    try {
-      const response = await fetch(`http://localhost:3000/v1/documents/${signedId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.user.access_token}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-          throw new Error(result.message || `HTTP error! status: ${response.status}`);
-      }
-
-      if (result.status === 'success') {
-          fetchProfile(); // Refresh profile to get updated document list
-      } else {
-          throw new Error(result.message || "Failed to delete document.");
-      }
-    } catch (e) {
-      if (e instanceof Error) {
-          setApiError(e.message);
-      } else {
-          setApiError("An unknown error occurred while deleting the document.");
-      }
-    }
-  };
-
-  return (
-    <>
-      <h2>User Profile</h2>
-      <p>This page is protected. You can only see it if you are logged in.</p>
-      {/* Display user's preferred username if available */}
-      {auth.user?.profile && (
-        <p>
-          Hello, <strong>{auth.user.profile.preferred_username}</strong>!
-        </p>
-      )}
-      <button onClick={() => auth.signoutRedirect()}>Log Out</button>
-
-      <hr style={{ margin: '20px 0' }} />
-      <h3>API Call</h3>
-      <p>
-        Once logged in, you can use your access token to call a protected API.
-      </p>
-      <button onClick={callApi}>Call API</button>
-      {apiResponse && (
-        <div>
-          <h4>API Response:</h4>
-          <pre
-            style={{
-              border: '1px solid #ccc',
-              padding: '10px',
-              background: '#f9f9f9',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-            }}
-          >
-            <code>{apiResponse}</code>
-          </pre>
-        </div>
-      )}
-      {apiError && (
-        <div>
-          <h4>API Error:</h4>
-          <p style={{ color: 'red' }}>{apiError}</p>
-        </div>
-      )}
-
-      <TicketSearch />
-
-      <DocumentUploader onUploadSuccess={handleUploadSuccess} />
-
-      <hr style={{ margin: '20px 0' }} />
-      <h3>My Features Map</h3>
-      <MapComponent
-        features={profile?.features}
-        onSaveFeatures={saveFeatures}
-      />
-
-      <Profile
-        profile={profile}
-        isLoading={isProfileLoading}
-        error={profileError}
-        onDeleteFeature={handleDeleteFeature}
-        onDeleteDocument={handleDeleteDocument}
-      />
     </>
   );
 }
@@ -316,7 +49,7 @@ function App() {
     return () => {
       auth.events.removeSilentRenewError(onSilentRenewError);
     };
-  }, [auth.events, auth.removeUser, navigate]);
+  }, [auth, navigate]);
 
   // This effect handles redirection after a successful login by detecting
   // a change in the authentication state from false to true.
@@ -324,7 +57,7 @@ function App() {
     if (!wasAuthenticated && auth.isAuthenticated) {
       navigate('/profile');
     }
-  }, [wasAuthenticated, auth.isAuthenticated, navigate]);
+  }, [wasAuthenticated, auth.isAuthenticated, navigate, auth]);
 
   return (
     <div>
@@ -338,7 +71,7 @@ function App() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <UserProfile />
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

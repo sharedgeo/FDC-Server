@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import TicketMap from './TicketMap';
 import TicketDetails from './TicketDetails';
+import { Geometry as OLGeometry } from 'ol/geom';
 
 interface GeoJSONFeature {
   type: 'Feature';
-  geometry: any;
-  properties: Record<string, any>;
+  geometry: OLGeometry | null;
+  properties: Record<string, unknown>;
 }
 
 const TicketSearch = () => {

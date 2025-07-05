@@ -10,12 +10,13 @@ import 'ol/ol.css';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Style, Fill, Stroke } from 'ol/style';
 import { isEmpty } from 'ol/extent';
+import { Geometry as OLGeometry } from 'ol/geom';
 
 // Define a basic GeoJSON Feature type
 interface GeoJSONFeature {
   type: 'Feature';
-  geometry: any;
-  properties: Record<string, any>;
+  geometry: OLGeometry | null;
+  properties: Record<string, unknown>;
 }
 
 interface TicketMapProps {
