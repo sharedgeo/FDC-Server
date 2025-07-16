@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_06_29_015308) do
+ActiveRecord::Schema[7.1].define(version: 2025_07_15_232745) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
   enable_extension "postgis"
@@ -48,7 +48,18 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_29_015308) do
     t.text "geom"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "ticket_id"
+    t.index ["ticket_id"], name: "index_features_on_ticket_id"
     t.index ["user_id"], name: "index_features_on_user_id"
+  end
+
+  create_table "ticket_attachments", force: :cascade do |t|
+    t.bigint "user_id"
+    t.bigint "ticket_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ticket_id"], name: "index_ticket_attachments_on_ticket_id"
+    t.index ["user_id"], name: "index_ticket_attachments_on_user_id"
   end
 
   create_table "tickets", force: :cascade do |t|
@@ -70,4 +81,5 @@ ActiveRecord::Schema[7.1].define(version: 2025_06_29_015308) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "features", "tickets"
 end

@@ -1,7 +1,8 @@
 import { useAuth } from 'react-oidc-context';
 import { Navigate } from 'react-router-dom';
+import React from 'react';
 
-export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const auth = useAuth();
 
   // While the authentication state is loading, show a loading message

@@ -22,7 +22,6 @@ class TicketsTest < ActionDispatch::IntegrationTest
       assert_equal "MultiPolygon", json_response["geometry"]["type"]
       assert_equal @ticket.ticket_no, json_response["properties"]["ticket_no"]
       assert_equal @ticket.ticket_type, json_response["properties"]["ticket_type"]
-      assert_not json_response["properties"].key?("id"), "ID should not be in properties"
       assert_not json_response["properties"].key?("geom"), "geom should not be in properties"
     end
   end

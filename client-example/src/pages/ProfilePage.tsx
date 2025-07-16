@@ -7,41 +7,22 @@ import Profile from '../components/profile/Profile';
 import { useProfile } from '../components/profile/useProfile';
 import { useFeatures } from '../components/map/useFeatures';
 import { useDocuments } from '../components/documents/useDocuments';
+import TicketDetails from '../components/tickets/TicketDetails';
+import type { GeoJSONFeature } from '../types';
 
 export default function ProfilePage() {
   const auth = useAuth();
-  const { profile, isLoading: isProfileLoading, error: profileError, refetch } = useProfile();
+  const [activeTicket, setActiveTicket] = useState<GeoJSONFeature | null>(null);
+  const { profile, isLoading: isProfileLoading, error: profileError, refetch } = useProfile(activeTicket?.properties?.id as number | undefined);
   const { saveFeatures, deleteFeature } = useFeatures(refetch);
   const { deleteDocument } = useDocuments(refetch);
 
-  const [apiResponse, setApiResponse] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
-
-  const callApi = async () => {
-    setApiResponse(null);
-    setApiError(null);
-    if (auth.user?.access_token) {
-      try {
-        const response = await fetch('http://localhost:3000/v1/debug_jwt', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${auth.user.access_token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setApiResponse(JSON.stringify(data, null, 2));
-        } else {
-          setApiError(`API returned ${response.status}: ${response.statusText}`);
-        }
-      } catch (error) {
-        if (error instanceof Error) {
-          setApiError(error.message);
-        } else {
-          setApiError('An unknown error occurred.');
-        }
-      }
+  const handleSaveFeatures = (feature: { geom: string }) => {
+    if (!activeTicket || !activeTicket.properties?.id) {
+      alert('Please select a ticket before saving features.');
+      return;
     }
+    saveFeatures(feature, activeTicket.properties.id as number);
   };
 
   return (
@@ -55,43 +36,6 @@ export default function ProfilePage() {
       )}
       <button onClick={() => auth.signoutRedirect()}>Log Out</button>
 
-      <hr style={{ margin: '20px 0' }} />
-      <h3>API Call</h3>
-      <p>
-        Once logged in, you can use your access token to call a protected API.
-      </p>
-      <button onClick={callApi}>Call API</button>
-      {apiResponse && (
-        <div>
-          <h4>API Response:</h4>
-          <pre
-            style={{
-              border: '1px solid #ccc',
-              padding: '10px',
-              background: '#f9f9f9',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-            }}
-          >
-            <code>{apiResponse}</code>
-          </pre>
-        </div>
-      )}
-      {apiError && (
-        <div>
-          <h4>API Error:</h4>
-          <p style={{ color: 'red' }}>{apiError}</p>
-        </div>
-      )}
-
-      <TicketSearch />
-      <DocumentManager onUploadSuccess={refetch} />
-      <hr style={{ margin: '20px 0' }} />
-      <h3>My Features Map</h3>
-      <FeaturesMap
-        features={profile?.features}
-        onSaveFeatures={saveFeatures}
-      />
       <Profile
         profile={profile}
         isLoading={isProfileLoading}
@@ -99,6 +43,26 @@ export default function ProfilePage() {
         onDeleteFeature={deleteFeature}
         onDeleteDocument={deleteDocument}
       />
+
+      <TicketSearch onTicketFound={setActiveTicket} activeTicket={activeTicket} />
+
+      {activeTicket ? (
+        <div style={{ border: '1px solid #ccc', padding: '1rem', marginTop: '1rem' }}>
+          <h3>Active Ticket: {activeTicket.properties?.ticket_no as string}</h3>
+          <TicketDetails properties={activeTicket.properties} />
+          <DocumentManager onUploadSuccess={refetch} ticketId={activeTicket.properties?.id as number} />
+          <hr style={{ margin: '20px 0' }} />
+          <h3>Features for Active Ticket</h3>
+          <FeaturesMap
+            features={profile?.tickets.flatMap(t => t.features)}
+            onSaveFeatures={handleSaveFeatures}
+          />
+        </div>
+      ) : (
+        <div style={{ border: '1px solid #ccc', padding: '1rem', marginTop: '1rem', backgroundColor: '#f5f5f5' }}>
+          <p>Please search for and select a ticket to manage its documents and features.</p>
+        </div>
+      )}
     </div>
   );
 }

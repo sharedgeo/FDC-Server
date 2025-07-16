@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
-import { type UserProfileData } from './Profile';
+import type { UserProfileData } from '../../types';
 
 interface ApiResponse {
   status: 'success' | 'error';
@@ -8,13 +8,13 @@ interface ApiResponse {
   message?: string;
 }
 
-export function useProfile() {
+export function useProfile(ticketId?: number) {
   const auth = useAuth();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (id?: number) => {
     if (!auth.user?.access_token) {
       setIsLoading(false);
       setError("Not authenticated or access token not available.");
@@ -24,8 +24,10 @@ export function useProfile() {
     setIsLoading(true);
     setError(null);
 
+    const url = id ? `http://localhost:3000/v1/tickets/${id}` : "http://localhost:3000/v1/profile";
+
     try {
-      const response = await fetch("http://localhost:3000/v1/profile", {
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${auth.user.access_token}`,
         },
@@ -54,10 +56,10 @@ export function useProfile() {
   }, [auth.user?.access_token]);
 
   useEffect(() => {
-    if (auth.isAuthenticated) {
+    if (auth.isAuthenticated && !ticketId) {
       fetchProfile();
     }
-  }, [auth.isAuthenticated, fetchProfile]);
+  }, [auth.isAuthenticated, fetchProfile, ticketId]);
 
-  return { profile, error, isLoading, refetch: fetchProfile };
+  return { profile, error, isLoading, refetch: () => fetchProfile(ticketId) };
 }

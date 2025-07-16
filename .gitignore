@@ -36,3 +36,4 @@
 
 client-example/node_moodules*
 client-example/node_modules
+client-example/dist*

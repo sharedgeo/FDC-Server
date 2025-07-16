@@ -18,7 +18,7 @@ class TicketsController < ApplicationController
   def ticket_to_geojson(ticket)
     geometry = RGeo::GeoJSON.encode(ticket.geom_as_4326)
 
-    properties = ticket.attributes.except('id', 'geom')
+    properties = ticket.attributes.except('geom')
 
     {
       type: 'Feature',

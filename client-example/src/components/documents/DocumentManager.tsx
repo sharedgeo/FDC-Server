@@ -4,9 +4,10 @@ import { useDirectUpload, type ActiveStorageFileUpload } from "@docflow/react-ac
 
 interface DocumentUploaderProps {
   onUploadSuccess: () => void;
+  ticketId: number | undefined;
 }
 
-const DocumentUploader = ({ onUploadSuccess }: DocumentUploaderProps) => {
+const DocumentUploader = ({ onUploadSuccess, ticketId }: DocumentUploaderProps) => {
   const auth = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -14,6 +15,13 @@ const DocumentUploader = ({ onUploadSuccess }: DocumentUploaderProps) => {
   const handleSuccess = async (signedIds: string[]) => {
     if (!auth.user?.access_token) {
       const errorMessage = "Authentication error: No access token found.";
+      console.error(errorMessage);
+      setError(errorMessage);
+      return;
+    }
+
+    if (!ticketId) {
+      const errorMessage = "No active ticket selected.";
       console.error(errorMessage);
       setError(errorMessage);
       return;
@@ -29,7 +37,7 @@ const DocumentUploader = ({ onUploadSuccess }: DocumentUploaderProps) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${auth.user.access_token}`,
         },
-        body: JSON.stringify({ document_signed_ids: signedIds }),
+        body: JSON.stringify({ ticket_id: ticketId, document_signed_ids: signedIds }),
       });
 
       const result = await response.json();
@@ -60,7 +68,6 @@ const DocumentUploader = ({ onUploadSuccess }: DocumentUploaderProps) => {
         xhr.setRequestHeader("Authorization", `Bearer ${auth.user.access_token}`);
       }
     },
-    multiple: true,
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,14 +83,15 @@ const DocumentUploader = ({ onUploadSuccess }: DocumentUploaderProps) => {
       <hr style={{ margin: '20px 0' }} />
       <h3>Upload Documents</h3>
       <p>
-        Select one or more files to upload. They will be attached to your user profile.
+        Select one or more files to upload. They will be attached to the active ticket.
       </p>
       <input
         type="file"
         multiple
-        disabled={!ready || !auth.isAuthenticated}
+        disabled={!ready || !auth.isAuthenticated || !ticketId}
         onChange={handleFileChange}
       />
+      {!ticketId && <p style={{ color: 'orange' }}>Please select a ticket to enable document uploads.</p>}
 
       {!ready && uploads.length > 0 && <p>Uploading...</p>}
 

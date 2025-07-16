@@ -11,15 +11,11 @@ import 'ol/ol.css';
 import WKT from 'ol/format/WKT';
 import Feature from 'ol/Feature';
 import { Geometry } from 'ol/geom';
-
-interface UserFeature {
-  id: number;
-  geom: string;
-}
+import type { UserFeature } from '../../types';
 
 interface MapComponentProps {
   features?: UserFeature[];
-  onSaveFeatures?: (features: { geom: string }[]) => void;
+  onSaveFeatures?: (feature: { geom: string }) => void;
 }
 
 const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
@@ -31,7 +27,7 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
 
   const drawInteraction = useRef<Draw | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const newFeatures = useRef<Feature<Geometry>[]>([]);
+  const newFeature = useRef<Feature<Geometry> | null>(null);
 
   // Initialize map on first render
   useEffect(() => {
@@ -73,7 +69,7 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
   useEffect(() => {
     if (!mapInstance.current) return;
     userVectorSource.current.clear();
-    newFeatures.current = [];
+    newFeature.current = null;
 
     if (features && features.length > 0) {
       const wktFormat = new WKT();
@@ -108,7 +104,11 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
       });
 
       drawInteraction.current.on('drawend', (event) => {
-        newFeatures.current.push(event.feature);
+        if (newFeature.current) {
+          userVectorSource.current.removeFeature(newFeature.current);
+        }
+        newFeature.current = event.feature;
+        setIsDrawing(false); // Stop drawing after one feature
       });
 
       mapInstance.current.addInteraction(drawInteraction.current);
@@ -128,51 +128,46 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
   };
 
   const clearDrawing = () => {
-    newFeatures.current.forEach((feature) => {
-      if (userVectorSource.current.hasFeature(feature)) {
-        userVectorSource.current.removeFeature(feature);
+    if (newFeature.current) {
+      if (userVectorSource.current.hasFeature(newFeature.current)) {
+        userVectorSource.current.removeFeature(newFeature.current);
       }
-    });
-    newFeatures.current = [];
+      newFeature.current = null;
+    }
   };
 
   const handleSave = () => {
-    if (!onSaveFeatures || newFeatures.current.length === 0) return;
+    if (!onSaveFeatures || !newFeature.current) return;
 
     const wktFormat = new WKT();
-    const featuresToSave = newFeatures.current.map((f) => {
-      const geom = f.getGeometry();
-      if (geom && mapInstance.current) {
-        return {
-          geom: wktFormat.writeGeometry(geom, {
-            dataProjection: 'EPSG:4326',
-            featureProjection: mapInstance.current.getView().getProjection().getCode(),
-          }),
-        };
-      }
-      return null;
-    }).filter((f) => f !== null) as { geom: string }[];
-
-    if (featuresToSave.length > 0) {
-      onSaveFeatures(featuresToSave);
-      newFeatures.current = [];
+    const geom = newFeature.current.getGeometry();
+    if (geom && mapInstance.current) {
+      const featureToSave = {
+        geom: wktFormat.writeGeometry(geom, {
+          dataProjection: 'EPSG:4326',
+          featureProjection: mapInstance.current.getView().getProjection().getCode(),
+        }),
+      };
+      onSaveFeatures(featureToSave);
+      newFeature.current = null;
     }
   };
+
+  const canDraw = onSaveFeatures !== undefined;
 
   return (
     <div>
       <div style={{ marginBottom: '1rem' }}>
-        <button onClick={toggleDrawing}>
-          {isDrawing ? 'Stop Drawing' : 'Start Drawing'}
+        <button onClick={toggleDrawing} disabled={!canDraw || isDrawing}>
+          {isDrawing ? 'Drawing...' : 'Draw Feature'}
         </button>
-        <button onClick={clearDrawing} style={{ marginLeft: '1rem' }}>
-          Clear Drawings
+        <button onClick={clearDrawing} style={{ marginLeft: '1rem' }} disabled={!newFeature.current}>
+          Clear Drawing
         </button>
-        {onSaveFeatures && (
-          <button onClick={handleSave} style={{ marginLeft: '1rem' }}>
-            Save Features
-          </button>
-        )}
+        <button onClick={handleSave} style={{ marginLeft: '1rem' }} disabled={!newFeature.current}>
+          Save Feature
+        </button>
+        {!canDraw && <p style={{ color: 'orange', marginTop: '0.5rem' }}>Please select a ticket to enable drawing.</p>}
       </div>
       <div ref={mapRef} style={{ width: '100%', height: '400px' }}></div>
     </div>

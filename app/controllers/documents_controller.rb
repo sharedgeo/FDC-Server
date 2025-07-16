@@ -2,37 +2,39 @@
 
 class DocumentsController < ApplicationController
   before_action :authenticate_request!
+  before_action :set_ticket_attachment, only: [:create]
 
   def create
     signed_ids = document_params[:document_signed_ids]
     if signed_ids.blank?
-      return render json: { status: 'error', message: 'document_signed_ids parameter is required.' }, status: :bad_request
+      return render json: { status: 'error', message: 'document_signed_ids parameter is required.' },
+                    status: :bad_request
     end
 
-    current_user.documents.attach(signed_ids)
+    @ticket_attachment.documents.attach(signed_ids)
     render json: { status: 'success', message: 'Document(s) attached successfully.' }, status: :ok
   end
 
   def destroy
-    begin
-      blob = ActiveStorage::Blob.find_signed!(params[:id])
-    rescue ActiveSupport::MessageVerifier::InvalidSignature
-      return render json: { status: 'error', message: 'Invalid signed ID.' }, status: :unprocessable_entity
-    end
+    blob = ActiveStorage::Blob.find_signed(params[:id])
+    attachment = ActiveStorage::Attachment.find_by(blob_id: blob.id)
 
-    attachment = current_user.documents_attachments.find_by(blob_id: blob.id)
-
-    if attachment
+    if attachment&.record&.user == current_user
       attachment.purge
       render json: { status: 'success', message: 'Document deleted successfully.' }, status: :ok
     else
-      render json: { status: 'error', message: 'Document not found for this user.' }, status: :not_found
+      render json: { status: 'error', message: 'Document not found or unauthorized.' }, status: :not_found
     end
   end
 
   private
 
+  def set_ticket_attachment
+    ticket = Ticket.find(document_params[:ticket_id])
+    @ticket_attachment = current_user.ticket_attachments.find_or_create_by(ticket: ticket)
+  end
+
   def document_params
-    params.permit(document_signed_ids: [])
+    params.permit(:ticket_id, document_signed_ids: [])
   end
 end

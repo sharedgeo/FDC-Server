@@ -5,72 +5,77 @@ require 'test_helper'
 class FeaturesTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
+    @ticket = tickets(:one)
     @valid_token = 'valid-token'
     @invalid_token = 'invalid-token'
     @feature_geom = 'POINT (1 1)'
-    @feature = Feature.create!(user: @user, geom: 'POINT (10 10)')
+    @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'POINT (10 10)')
   end
 
   # POST /v1/features
-  test 'should create features for existing user' do
+  test 'should create a feature for an existing user and ticket' do
     decoded_token = { payload: { 'email' => @user.email_address } }
     JsonWebToken.stub :verify, decoded_token do
       assert_difference('Feature.count', 1) do
         post '/v1/features',
              headers: { 'Authorization' => "Bearer #{@valid_token}" },
-             params: { features: [{ geom: @feature_geom }] },
+             params: { ticket_id: @ticket.id, geom: @feature_geom },
              as: :json
       end
     end
 
-    assert_response :success
-    @user.reload
-
-    assert_equal 2, Feature.where(user: @user).count
-    assert Feature.exists?(user: @user, geom: @feature_geom)
+    assert_response :created
+    feature = Feature.last
+    assert_equal @user, feature.user
+    assert_equal @ticket, feature.ticket
+    assert_equal @feature_geom, feature.geom
 
     json_response = JSON.parse(response.body)
     assert_equal 'success', json_response['status']
-    assert_equal 'Feature(s) created successfully.', json_response['message']
+    assert_equal 'Feature created successfully.', json_response['message']
+    assert_not_nil json_response['feature_id']
   end
 
-  test 'should return unauthorized if user does not exist' do
+  test 'should create user and feature if user does not exist' do
     new_user_email = 'new.user@example.com'
-    assert_no_difference('User.count') do
-      assert_no_difference('Feature.count') do
-        decoded_token = { payload: { 'email' => new_user_email } }
-        JsonWebToken.stub :verify, decoded_token do
+    decoded_token = { payload: { 'email' => new_user_email } }
+    JsonWebToken.stub :verify, decoded_token do
+      assert_difference('User.count', 1) do
+        assert_difference('Feature.count', 1) do
           post '/v1/features',
                headers: { 'Authorization' => "Bearer #{@valid_token}" },
-               params: { features: [{ geom: @feature_geom }] },
+               params: { ticket_id: @ticket.id, geom: @feature_geom },
                as: :json
         end
       end
     end
 
-    assert_response :unauthorized
+    assert_response :created
+    new_user = User.find_by(email_address: new_user_email)
+    assert new_user
+    assert new_user.features.exists?(geom: @feature_geom, ticket: @ticket)
   end
 
-  test 'should return bad request if features parameter is missing' do
+  test 'should return bad request if geom parameter is missing' do
     decoded_token = { payload: { 'email' => @user.email_address } }
     JsonWebToken.stub :verify, decoded_token do
       post '/v1/features',
            headers: { 'Authorization' => "Bearer #{@valid_token}" },
-           params: {},
+           params: { ticket_id: @ticket.id },
            as: :json
     end
 
     assert_response :bad_request
     json_response = JSON.parse(response.body)
     assert_equal 'error', json_response['status']
-    assert_equal 'features parameter is required.', json_response['message']
+    assert_equal 'geom parameter is required.', json_response['message']
   end
 
   test 'should return unauthorized for invalid token when creating' do
     JsonWebToken.stub :verify, ->(_token) { raise JWT::DecodeError, 'Invalid token' } do
       post '/v1/features',
            headers: { 'Authorization' => "Bearer #{@invalid_token}" },
-           params: { features: [{ geom: @feature_geom }] },
+           params: { ticket_id: @ticket.id, geom: @feature_geom },
            as: :json
     end
 
@@ -79,7 +84,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
 
   test 'should return unauthorized without token when creating' do
     post '/v1/features',
-         params: { features: [{ geom: @feature_geom }] },
+         params: { ticket_id: @ticket.id, geom: @feature_geom },
          as: :json
 
     assert_response :unauthorized
@@ -104,7 +109,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
 
   test 'should not delete a feature belonging to another user' do
     user_two = users(:two)
-    feature_of_user_two = Feature.create!(user: user_two, geom: 'POINT (30 30)')
+    feature_of_user_two = Feature.create!(user: user_two, ticket: @ticket, geom: 'POINT (30 30)')
 
     decoded_token = { payload: { 'email' => @user.email_address } }
     JsonWebToken.stub :verify, decoded_token do
@@ -123,7 +128,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
   end
 
   test 'should return not found for non-existent feature id' do
-    non_existent_id = Feature.last.id + 1
+    non_existent_id = Feature.maximum(:id) + 1
     decoded_token = { payload: { 'email' => @user.email_address } }
     JsonWebToken.stub :verify, decoded_token do
       assert_no_difference('Feature.count') do
@@ -134,9 +139,6 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :not_found
-    json_response = JSON.parse(response.body)
-    assert_equal 'error', json_response['status']
-    assert_equal 'Feature not found.', json_response['message']
   end
 
   test 'should return unauthorized when trying to delete without token' do

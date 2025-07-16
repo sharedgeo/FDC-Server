@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-class Feature < ApplicationRecord
+class TicketAttachment < ApplicationRecord
   belongs_to :user
   belongs_to :ticket
-
-  validates :geom, presence: true
+  has_many_attached :documents
 end

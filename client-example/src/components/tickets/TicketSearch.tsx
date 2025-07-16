@@ -1,20 +1,17 @@
 import { useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import TicketMap from './TicketMap';
-import TicketDetails from './TicketDetails';
-import { Geometry as OLGeometry } from 'ol/geom';
+import type { GeoJSONFeature } from '../../types';
 
-interface GeoJSONFeature {
-  type: 'Feature';
-  geometry: OLGeometry | null;
-  properties: Record<string, unknown>;
+interface TicketSearchProps {
+  onTicketFound: (ticket: GeoJSONFeature | null) => void;
+  activeTicket: GeoJSONFeature | null;
 }
 
-const TicketSearch = () => {
+const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
   const auth = useAuth();
   const [ticketNo, setTicketNo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [ticket, setTicket] = useState<GeoJSONFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async () => {
@@ -30,7 +27,7 @@ const TicketSearch = () => {
 
     setIsLoading(true);
     setError(null);
-    setTicket(null);
+    onTicketFound(null);
 
     try {
       const response = await fetch(`http://localhost:3000/v1/tickets/${encodeURIComponent(ticketNo)}`, {
@@ -50,7 +47,7 @@ const TicketSearch = () => {
       }
 
       const foundTicket: GeoJSONFeature = await response.json();
-      setTicket(foundTicket);
+      onTicketFound(foundTicket);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
       setError(errorMessage);
@@ -62,7 +59,7 @@ const TicketSearch = () => {
   const handleClear = () => {
     setTicketNo('');
     setError(null);
-    setTicket(null);
+    onTicketFound(null);
   };
 
   return (
@@ -86,10 +83,9 @@ const TicketSearch = () => {
         </button>
       </div>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {ticket && (
+      {activeTicket && (
         <div>
-          <TicketMap ticket={ticket} />
-          <TicketDetails properties={ticket.properties} />
+          <TicketMap ticket={activeTicket} />
         </div>
       )}
     </div>

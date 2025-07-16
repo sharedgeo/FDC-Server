@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
 class User < ApplicationRecord
-  has_many_attached :documents
+  has_many :ticket_attachments
   has_many :features
+  has_many :tickets_from_attachments, through: :ticket_attachments, source: :ticket
+  has_many :tickets_from_features, through: :features, source: :ticket
+
+  def all_tickets
+    (tickets_from_attachments + tickets_from_features).uniq
+  end
 end

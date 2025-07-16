@@ -22,7 +22,7 @@ const TicketDetails = ({ properties }: TicketDetailsProps) => {
                 {key.replace(/_/g, ' ')}
               </td>
               <td style={{ padding: '8px', wordBreak: 'break-all' }}>
-                {key.endsWith('_date') || key === 'created_at' ? new Date(value).toLocaleString() : String(value)}
+                {key.endsWith('_date') || key === 'created_at' ? new Date(value as string).toLocaleString() : String(value)}
               </td>
             </tr>
           ))}
