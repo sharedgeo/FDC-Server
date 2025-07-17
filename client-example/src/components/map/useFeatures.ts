@@ -13,7 +13,7 @@ export function useFeatures(refetchProfile: () => void) {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:3000/v1/features", {
+      const response = await fetch("/v1/features", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ export function useFeatures(refetchProfile: () => void) {
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:3000/v1/features/${featureId}`, {
+      const response = await fetch(`/v1/features/${featureId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

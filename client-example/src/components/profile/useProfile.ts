@@ -24,7 +24,7 @@ export function useProfile(ticketId?: number) {
     setIsLoading(true);
     setError(null);
 
-    const url = id ? `http://localhost:3000/v1/tickets/${id}` : "http://localhost:3000/v1/profile";
+    const url = id ? `/v1/tickets/${id}` : "/v1/profile";
 
     try {
       const response = await fetch(url, {

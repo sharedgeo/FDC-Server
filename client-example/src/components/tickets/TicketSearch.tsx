@@ -30,7 +30,7 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
     onTicketFound(null);
 
     try {
-      const response = await fetch(`http://localhost:3000/v1/tickets/${encodeURIComponent(ticketNo)}`, {
+      const response = await fetch(`/v1/tickets/${encodeURIComponent(ticketNo)}`, {
         headers: {
           Authorization: `Bearer ${auth.user.access_token}`,
         },

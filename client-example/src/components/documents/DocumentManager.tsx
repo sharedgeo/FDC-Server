@@ -31,7 +31,7 @@ const DocumentUploader = ({ onUploadSuccess, ticketId }: DocumentUploaderProps) 
     setSuccessMessage(null);
 
     try {
-      const response = await fetch("http://localhost:3000/v1/documents", {
+      const response = await fetch("/v1/documents", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +61,7 @@ const DocumentUploader = ({ onUploadSuccess, ticketId }: DocumentUploaderProps) 
     uploads,
     ready,
   } = useDirectUpload({
-    directUploadsPath: "http://localhost:3000/rails/active_storage/direct_uploads",
+    directUploadsPath: "/rails/active_storage/direct_uploads",
     onSuccess: handleSuccess,
     onBeforeBlobRequest: ({ xhr }) => {
       if (auth.user?.access_token) {
