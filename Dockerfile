@@ -33,6 +33,14 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
+# Build client-example
+FROM docker.io/library/node:24-alpine as build-client
+
+WORKDIR /src
+COPY client-example .
+ENV VITE_BASE_PATH="/"
+RUN npm install && npm run build
+
 
 # Final stage for app image
 FROM base
@@ -45,6 +53,7 @@ RUN apt-get update -qq && \
 # Copy built artifacts: gems, application
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY --from=build /rails /rails
+COPY --from=build-client /src/dist /rails/public
 
 # Run and own only the runtime files as a non-root user for security
 RUN useradd rails --create-home --shell /bin/bash && \
