@@ -30,7 +30,7 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
     onTicketFound(null);
 
     try {
-      const response = await fetch(`/v1/tickets/${encodeURIComponent(ticketNo)}`, {
+      const response = await fetch(`/v1/tickets/search?ticket_no=${encodeURIComponent(ticketNo)}`, {
         headers: {
           Authorization: `Bearer ${auth.user.access_token}`,
         },
@@ -48,6 +48,9 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
 
       const foundTicket: GeoJSONFeature = await response.json();
       onTicketFound(foundTicket);
+      if (foundTicket && foundTicket.properties) {
+        sessionStorage.setItem('activeTicketId', foundTicket.properties.id.toString());
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
       setError(errorMessage);
@@ -60,6 +63,7 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
     setTicketNo('');
     setError(null);
     onTicketFound(null);
+    sessionStorage.removeItem('activeTicketId');
   };
 
   return (

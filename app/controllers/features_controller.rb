@@ -4,17 +4,14 @@ class FeaturesController < ApplicationController
   before_action :authenticate_request!
 
   def create
-    ticket = Ticket.find(feature_params[:ticket_id])
-    geom = feature_params[:geom]
-
-    return render json: { status: 'error', message: 'geom parameter is required.' }, status: :bad_request if geom.blank?
-
     begin
-      feature = current_user.features.create!(geom: geom, ticket: ticket)
+      feature = current_user.features.create!(feature_params)
       render json: { status: 'success', message: 'Feature created successfully.', feature_id: feature.id },
              status: :created
     rescue ActiveRecord::RecordInvalid => e
       render json: { status: 'error', message: e.message }, status: :unprocessable_entity
+    rescue ActionController::ParameterMissing => e
+      render json: { status: 'error', message: e.message }, status: :bad_request
     end
   end
 
@@ -32,6 +29,6 @@ class FeaturesController < ApplicationController
   private
 
   def feature_params
-    params.permit(:ticket_id, :geom)
+    params.require(:feature).permit(:ticket_id, geom: {})
   end
 end

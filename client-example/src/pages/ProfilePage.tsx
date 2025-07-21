@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
 import TicketSearch from '../components/tickets/TicketSearch';
 import DocumentManager from '../components/documents/DocumentManager';
@@ -13,11 +13,38 @@ import type { GeoJSONFeature } from '../types';
 export default function ProfilePage() {
   const auth = useAuth();
   const [activeTicket, setActiveTicket] = useState<GeoJSONFeature | null>(null);
-  const { profile, isLoading: isProfileLoading, error: profileError, refetch } = useProfile(activeTicket?.properties?.id as number | undefined);
+  const { profile, isLoading: isProfileLoading, error: profileError, refetch } = useProfile();
   const { saveFeatures, deleteFeature } = useFeatures(refetch);
   const { deleteDocument } = useDocuments(refetch);
 
-  const handleSaveFeatures = (feature: { geom: string }) => {
+  const fetchTicketById = useCallback(async (ticketId: string) => {
+    if (!auth.user?.access_token) return;
+
+    try {
+      const response = await fetch(`/v1/tickets/${ticketId}`, {
+        headers: {
+          Authorization: `Bearer ${auth.user.access_token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch ticket');
+      }
+      const ticketData: GeoJSONFeature = await response.json();
+      setActiveTicket(ticketData);
+    } catch (error) {
+      console.error("Error fetching ticket by ID:", error);
+      sessionStorage.removeItem('activeTicketId');
+    }
+  }, [auth.user?.access_token]);
+
+  useEffect(() => {
+    const activeTicketId = sessionStorage.getItem('activeTicketId');
+    if (activeTicketId && !activeTicket) {
+      fetchTicketById(activeTicketId);
+    }
+  }, [auth.isAuthenticated, fetchTicketById, activeTicket]);
+
+  const handleSaveFeatures = (feature: { geom: object }) => {
     if (!activeTicket || !activeTicket.properties?.id) {
       alert('Please select a ticket before saving features.');
       return;
@@ -54,8 +81,8 @@ export default function ProfilePage() {
           <hr style={{ margin: '20px 0' }} />
           <h3>Features for Active Ticket</h3>
           <FeaturesMap
-            features={profile?.tickets.flatMap(t => t.features)}
-            onSaveFeatures={handleSaveFeatures}
+            features={profile?.tickets.find(t => t.id === activeTicket?.properties?.id)?.features}
+            onSaveFeatures={handleSaveFeatures as (feature: { geom: object }) => void}
           />
         </div>
       ) : (

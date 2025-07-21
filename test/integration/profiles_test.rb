@@ -10,7 +10,7 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     @invalid_token = 'invalid-token'
 
     # Create a feature associated with the user and ticket
-    @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'POINT (1 1)')
+    @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((1 1, 2 2, 3 3, 1 1)))')
 
     # Create a ticket attachment and attach a document
     @ticket_attachment = @user.ticket_attachments.create!(ticket: @ticket)
@@ -44,10 +44,13 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     assert_equal @ticket.id, ticket_data['id']
 
     # Check features within the ticket
-    assert_equal 1, ticket_data['features'].count
-    feature_data = ticket_data['features'][0]
+    assert_equal 'FeatureCollection', ticket_data['features']['type']
+    assert_equal 1, ticket_data['features']['features'].count
+    feature_data = ticket_data['features']['features'][0]
     assert_equal @feature.id, feature_data['id']
-    assert_equal @feature.geom, feature_data['geom']
+    encoded_geom = JSON.parse(RGeo::GeoJSON.encode(@feature.geom).to_json)
+    assert_equal encoded_geom['type'], feature_data['geometry']['type']
+    assert_equal encoded_geom['coordinates'], feature_data['geometry']['coordinates']
 
     # Check documents within the ticket
     assert_equal 1, ticket_data['documents'].count

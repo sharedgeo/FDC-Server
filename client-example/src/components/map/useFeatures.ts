@@ -5,7 +5,7 @@ export function useFeatures(refetchProfile: () => void) {
   const auth = useAuth();
   const [error, setError] = useState<string | null>(null);
 
-  const saveFeatures = async (feature: { geom: string }, ticketId: number) => {
+  const saveFeatures = async (feature: { geom: object }, ticketId: number) => {
     if (!auth.user?.access_token) {
       setError("Not authenticated or access token not available.");
       return;
@@ -19,7 +19,7 @@ export function useFeatures(refetchProfile: () => void) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${auth.user.access_token}`,
         },
-        body: JSON.stringify({ geom: feature.geom, ticket_id: ticketId }),
+        body: JSON.stringify({ feature: { geom: feature.geom, ticket_id: ticketId } }),
       });
 
       const result = await response.json();

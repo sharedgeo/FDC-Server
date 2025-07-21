@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get -y update && sudo apt-get -y install libproj-dev proj-bin libgeos-dev
       # Add or replace dependency steps here
       - name: Install Ruby and gems
         uses: ruby/setup-ruby@v1
@@ -56,6 +58,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: sudo apt-get -y update && sudo apt-get -y install libproj-dev proj-bin libgeos-dev
       - name: Install Ruby and gems
         uses:  ruby/setup-ruby@v1
         with:

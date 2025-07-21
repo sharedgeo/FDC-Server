@@ -6,7 +6,9 @@ Rails.application.routes.draw do
     get "/profile", to: "profiles#show"
     resources :documents, only: %i[create destroy]
     resources :features, only: %i[create destroy]
-    resources :tickets, only: [:show], param: :ticket_no, constraints: { ticket_no: /.*/ }
+    resources :tickets, only: [:show] do
+      match 'search', on: :collection, via: [:get, :post]
+    end
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

@@ -8,13 +8,13 @@ interface ApiResponse {
   message?: string;
 }
 
-export function useProfile(ticketId?: number) {
+export function useProfile() {
   const auth = useAuth();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const fetchProfile = useCallback(async (id?: number) => {
+  const fetchProfile = useCallback(async () => {
     if (!auth.user?.access_token) {
       setIsLoading(false);
       setError("Not authenticated or access token not available.");
@@ -24,7 +24,7 @@ export function useProfile(ticketId?: number) {
     setIsLoading(true);
     setError(null);
 
-    const url = id ? `/v1/tickets/${id}` : "/v1/profile";
+    const url = "/v1/profile";
 
     try {
       const response = await fetch(url, {
@@ -56,10 +56,10 @@ export function useProfile(ticketId?: number) {
   }, [auth.user?.access_token]);
 
   useEffect(() => {
-    if (auth.isAuthenticated && !ticketId) {
+    if (auth.isAuthenticated) {
       fetchProfile();
     }
-  }, [auth.isAuthenticated, fetchProfile, ticketId]);
+  }, [auth.isAuthenticated, fetchProfile]);
 
-  return { profile, error, isLoading, refetch: () => fetchProfile(ticketId) };
+  return { profile, error, isLoading, refetch: fetchProfile };
 }

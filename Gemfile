@@ -12,6 +12,7 @@ gem 'pg'
 gem 'activerecord-postgis-adapter'
 
 gem 'rgeo-geojson'
+gem 'rgeo-proj4'
 
 # Use the Puma web server [https://github.com/puma/puma]
 gem 'puma', '>= 5.0'

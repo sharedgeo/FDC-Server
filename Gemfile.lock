@@ -235,6 +235,8 @@ GEM
     rgeo-geojson (2.2.0)
       multi_json (~> 1.15)
       rgeo (>= 1.0.0)
+    rgeo-proj4 (4.0.0)
+      rgeo (~> 3.0.0)
     rubocop (1.78.0)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
@@ -303,6 +305,7 @@ DEPENDENCIES
   rack-cors
   rails (~> 7.1.5)
   rgeo-geojson
+  rgeo-proj4
   rubocop-rails
   simplecov
 

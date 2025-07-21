@@ -1,4 +1,5 @@
 import type { UserProfileData } from '../../types';
+import type GeoJSON from 'geojson';
 
 interface ProfileProps {
   profile: UserProfileData | null;
@@ -55,7 +56,7 @@ function Profile({ profile, error, isLoading, onDeleteFeature, onDeleteDocument 
             ) : <p>No documents for this ticket.</p>}
 
             <h5 style={{ marginTop: '1rem' }}>Features</h5>
-            {ticket.features.length > 0 ? (
+            {ticket.features.features.length > 0 ? (
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #ccc' }}>
@@ -64,11 +65,11 @@ function Profile({ profile, error, isLoading, onDeleteFeature, onDeleteDocument 
                   </tr>
                 </thead>
                 <tbody>
-                  {ticket.features.map((feature) => (
+                  {ticket.features.features.map((feature: GeoJSON.Feature) => (
                     <tr key={feature.id} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '8px' }}>{feature.id}</td>
                       <td style={{ padding: '8px' }}>
-                        <button onClick={() => onDeleteFeature(feature.id)}>Delete</button>
+                        <button onClick={() => onDeleteFeature(feature.id as number)}>Delete</button>
                       </td>
                     </tr>
                   ))}

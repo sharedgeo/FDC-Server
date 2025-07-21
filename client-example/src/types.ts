@@ -1,4 +1,5 @@
 import { Geometry as OLGeometry } from 'ol/geom';
+import type { FeatureCollection } from 'geojson';
 
 export interface UserDocument {
   filename: string;
@@ -7,16 +8,10 @@ export interface UserDocument {
   signed_id: string;
 }
 
-export interface UserFeature {
-  id: number;
-  geom: string;
-  ticket_id: number;
-}
-
 export interface Ticket {
   id: number;
   ticket_no: string;
-  features: UserFeature[];
+  features: FeatureCollection;
   documents: UserDocument[];
 }
 

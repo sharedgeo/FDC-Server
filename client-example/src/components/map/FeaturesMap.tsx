@@ -8,14 +8,14 @@ import VectorSource from 'ol/source/Vector';
 import { fromLonLat } from 'ol/proj';
 import Draw from 'ol/interaction/Draw';
 import 'ol/ol.css';
-import WKT from 'ol/format/WKT';
+import GeoJSON from 'ol/format/GeoJSON';
 import Feature from 'ol/Feature';
-import { Geometry } from 'ol/geom';
-import type { UserFeature } from '../../types';
+import { Geometry }from 'ol/geom';
+import type { FeatureCollection } from 'geojson';
 
 interface MapComponentProps {
-  features?: UserFeature[];
-  onSaveFeatures?: (feature: { geom: string }) => void;
+  features?: FeatureCollection;
+  onSaveFeatures?: (feature: { geom: object }) => void;
 }
 
 const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
@@ -71,19 +71,12 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
     userVectorSource.current.clear();
     newFeature.current = null;
 
-    if (features && features.length > 0) {
-      const wktFormat = new WKT();
-      const olFeatures = features.map((feature) => {
-        try {
-          return wktFormat.readFeature(feature.geom, {
-            dataProjection: 'EPSG:4326',
-            featureProjection: mapInstance.current!.getView().getProjection().getCode(),
-          });
-        } catch (e) {
-          console.error('Error parsing WKT geometry:', e);
-          return null;
-        }
-      }).filter(f => f !== null) as Feature<Geometry>[];
+    if (features && features.features.length > 0) {
+      const geoJSONFormat = new GeoJSON();
+      const olFeatures = geoJSONFormat.readFeatures(features, {
+        dataProjection: 'EPSG:4326',
+        featureProjection: mapInstance.current!.getView().getProjection().getCode(),
+      });
 
       userVectorSource.current.addFeatures(olFeatures);
     }
@@ -100,7 +93,7 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
     if (isDrawing) {
       drawInteraction.current = new Draw({
         source: userVectorSource.current,
-        type: 'Polygon',
+        type: 'MultiPolygon',
       });
 
       drawInteraction.current.on('drawend', (event) => {
@@ -139,11 +132,11 @@ const MapComponent = ({ features, onSaveFeatures }: MapComponentProps) => {
   const handleSave = () => {
     if (!onSaveFeatures || !newFeature.current) return;
 
-    const wktFormat = new WKT();
     const geom = newFeature.current.getGeometry();
     if (geom && mapInstance.current) {
+      const geoJSONFormat = new GeoJSON();
       const featureToSave = {
-        geom: wktFormat.writeGeometry(geom, {
+        geom: geoJSONFormat.writeGeometryObject(geom, {
           dataProjection: 'EPSG:4326',
           featureProjection: mapInstance.current.getView().getProjection().getCode(),
         }),

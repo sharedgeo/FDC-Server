@@ -18,8 +18,17 @@ class ProfilesController < ApplicationController
         end
       end
 
+      features = ticket.features.where(user: current_user)
+      feature_collection = RGeo::GeoJSON.encode(
+        RGeo::GeoJSON::FeatureCollection.new(
+          features.map do |feature|
+            RGeo::GeoJSON::Feature.new(feature.geom, feature.id)
+          end
+        )
+      )
+
       ticket.as_json(only: %i[id ticket_no]).merge(
-        features: ticket.features.where(user: current_user).as_json(only: %i[id geom]),
+        features: feature_collection,
         documents: documents.select do |doc|
           current_user.ticket_attachments.joins(:documents_attachments)
                       .where(active_storage_attachments: { blob_id: ActiveStorage::Blob.find_signed(doc[:signed_id]).id })
