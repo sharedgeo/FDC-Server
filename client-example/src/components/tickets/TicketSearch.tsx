@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from 'react-oidc-context';
-import TicketMap from './TicketMap';
 import type { GeoJSONFeature } from '../../types';
 
 interface TicketSearchProps {
   onTicketFound: (ticket: GeoJSONFeature | null) => void;
-  activeTicket: GeoJSONFeature | null;
 }
 
-const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
+const TicketSearch = ({ onTicketFound }: TicketSearchProps) => {
   const auth = useAuth();
   const [ticketNo, setTicketNo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +25,6 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
 
     setIsLoading(true);
     setError(null);
-    onTicketFound(null);
 
     try {
       const response = await fetch(`/v1/tickets/search?ticket_no=${encodeURIComponent(ticketNo)}`, {
@@ -66,6 +63,12 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
     sessionStorage.removeItem('activeTicketId');
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   return (
     <div>
       <hr style={{ margin: '20px 0' }} />
@@ -75,6 +78,7 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
           type="text"
           value={ticketNo}
           onChange={(e) => setTicketNo(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Enter Ticket Number"
           disabled={isLoading || !auth.isAuthenticated}
           style={{ padding: '0.6em 1.2em', fontSize: '1em' }}
@@ -87,11 +91,6 @@ const TicketSearch = ({ onTicketFound, activeTicket }: TicketSearchProps) => {
         </button>
       </div>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {activeTicket && (
-        <div>
-          <TicketMap ticket={activeTicket} />
-        </div>
-      )}
     </div>
   );
 };

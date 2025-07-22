@@ -8,6 +8,7 @@ import { useProfile } from '../components/profile/useProfile';
 import { useFeatures } from '../components/map/useFeatures';
 import { useDocuments } from '../components/documents/useDocuments';
 import TicketDetails from '../components/tickets/TicketDetails';
+import TicketMap from '../components/tickets/TicketMap';
 import type { GeoJSONFeature } from '../types';
 
 export default function ProfilePage() {
@@ -57,9 +58,16 @@ export default function ProfilePage() {
       <h2>User Profile</h2>
       <p>This page is protected. You can only see it if you are logged in.</p>
       {auth.user?.profile && (
-        <p>
-          Hello, <strong>{auth.user.profile.preferred_username}</strong>!
-        </p>
+        <div>
+          <p>
+            Hello, <strong>{auth.user.profile.preferred_username}</strong>!
+          </p>
+          {activeTicket && (
+            <p>
+              <strong>Active Ticket:</strong> {activeTicket.properties?.ticket_no as string}
+            </p>
+          )}
+        </div>
       )}
       <button onClick={() => auth.signoutRedirect()}>Log Out</button>
 
@@ -72,6 +80,7 @@ export default function ProfilePage() {
       />
 
       <TicketSearch onTicketFound={setActiveTicket} activeTicket={activeTicket} />
+      <TicketMap ticket={activeTicket} />
 
       {activeTicket ? (
         <div style={{ border: '1px solid #ccc', padding: '1rem', marginTop: '1rem' }}>
