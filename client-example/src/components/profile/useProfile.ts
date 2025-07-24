@@ -24,7 +24,7 @@ export function useProfile() {
     setIsLoading(true);
     setError(null);
 
-    const url = "/v1/profile";
+    const url = import.meta.env.BASE_URL+"/v1/profile";
 
     try {
       const response = await fetch(url, {

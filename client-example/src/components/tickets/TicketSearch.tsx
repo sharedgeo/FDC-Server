@@ -28,7 +28,7 @@ const TicketSearch = ({ onTicketFound }: TicketSearchProps) => {
     setError(null);
 
     try {
-      const response = await fetch(`/v1/tickets/search?ticket_no=${encodeURIComponent(ticketNo)}`, {
+      const response = await fetch(`${import.meta.env.BASE_URL}v1/tickets/search?ticket_no=${encodeURIComponent(ticketNo)}`, {
         headers: {
           Authorization: `Bearer ${auth.user.access_token}`,
         },
