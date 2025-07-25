@@ -11,7 +11,7 @@ import { BrowserRouter } from 'react-router-dom';
 const oidcConfig = {
   authority: 'https://sso.sharedgeo.org/realms/SharedGeo', // Replace with your realm URL
   client_id: 'fdc-demo-localhost', // Replace with your client ID
-  redirect_uri: window.location.origin,
+  redirect_uri: import.meta.env.BASE_URL + window.location.origin,
   onSigninCallback: () => {
     // Removes the auth state from the URL after a successful login
     window.history.replaceState({}, document.title, window.location.pathname);

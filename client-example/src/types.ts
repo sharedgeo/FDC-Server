@@ -21,8 +21,14 @@ export interface UserProfileData {
   tickets: Ticket[];
 }
 
-export interface GeoJSONFeature {
+export interface GeoJSONFeature<P = Record<string, unknown>> {
   type: 'Feature';
   geometry: OLGeometry | null;
-  properties: Record<string, unknown>;
+  properties: P;
+}
+
+export interface TicketProperties {
+  id: number;
+  ticket_no: string;
+  [key: string]: unknown;
 }

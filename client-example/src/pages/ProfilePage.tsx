@@ -9,11 +9,11 @@ import { useFeatures } from '../components/map/useFeatures';
 import { useDocuments } from '../components/documents/useDocuments';
 import TicketDetails from '../components/tickets/TicketDetails';
 import TicketMap from '../components/tickets/TicketMap';
-import type { GeoJSONFeature } from '../types';
+import type { GeoJSONFeature, TicketProperties } from '../types';
 
 export default function ProfilePage() {
   const auth = useAuth();
-  const [activeTicket, setActiveTicket] = useState<GeoJSONFeature | null>(null);
+  const [activeTicket, setActiveTicket] = useState<GeoJSONFeature<TicketProperties> | null>(null);
   const { profile, isLoading: isProfileLoading, error: profileError, refetch } = useProfile();
   const { saveFeatures, deleteFeature } = useFeatures(refetch);
   const { deleteDocument } = useDocuments(refetch);
@@ -30,7 +30,7 @@ export default function ProfilePage() {
       if (!response.ok) {
         throw new Error('Failed to fetch ticket');
       }
-      const ticketData: GeoJSONFeature = await response.json();
+      const ticketData: GeoJSONFeature<TicketProperties> = await response.json();
       setActiveTicket(ticketData);
     } catch (error) {
       console.error("Error fetching ticket by ID:", error);

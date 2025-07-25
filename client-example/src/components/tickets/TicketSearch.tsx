@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from 'react-oidc-context';
-import type { GeoJSONFeature } from '../../types';
+import type { GeoJSONFeature, TicketProperties } from '../../types';
 
 interface TicketSearchProps {
-  onTicketFound: (ticket: GeoJSONFeature | null) => void;
+  onTicketFound: (ticket: GeoJSONFeature<TicketProperties> | null) => void;
+  activeTicket: GeoJSONFeature<TicketProperties> | null;
 }
 
 const TicketSearch = ({ onTicketFound }: TicketSearchProps) => {
@@ -43,7 +44,7 @@ const TicketSearch = ({ onTicketFound }: TicketSearchProps) => {
         throw new Error(errorResult.message || `API error: ${response.statusText}`);
       }
 
-      const foundTicket: GeoJSONFeature = await response.json();
+      const foundTicket: GeoJSONFeature<TicketProperties> = await response.json();
       onTicketFound(foundTicket);
       if (foundTicket && foundTicket.properties) {
         sessionStorage.setItem('activeTicketId', foundTicket.properties.id.toString());
