@@ -16,5 +16,5 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // If the user is not authenticated, redirect them to the home page
-  return <Navigate to="/" replace />;
+  return <Navigate to={import.meta.env.BASE_URL} replace />;
 };
