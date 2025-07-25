@@ -13,7 +13,7 @@ export function useDocuments(refetchProfile: () => void) {
     setError(null);
 
     try {
-      const response = await fetch(`/v1/documents/${signedId}`, {
+      const response = await fetch(`${import.meta.env.BASE_URL}v1/documents/${signedId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

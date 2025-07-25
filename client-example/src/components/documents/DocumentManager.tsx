@@ -31,7 +31,7 @@ const DocumentUploader = ({ onUploadSuccess, ticketId }: DocumentUploaderProps) 
     setSuccessMessage(null);
 
     try {
-      const response = await fetch("/v1/documents", {
+      const response = await fetch(import.meta.env.BASE_URL+"v1/documents", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -36,9 +36,11 @@ RUN bundle exec bootsnap precompile app/ lib/
 # Build client-example
 FROM docker.io/library/node:24-alpine as build-client
 
+ARG RAILS_RELATIVE_URL_ROOT=/
+ENV VITE_BASE_PATH=$RAILS_RELATIVE_URL_ROOT
+
 WORKDIR /src
 COPY client-example .
-ENV VITE_BASE_PATH="/"
 RUN npm install && npm run build
 
 
