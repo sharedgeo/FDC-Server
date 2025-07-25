@@ -22,7 +22,7 @@ export default function ProfilePage() {
     if (!auth.user?.access_token) return;
 
     try {
-      const response = await fetch(`/v1/tickets/${ticketId}`, {
+      const response = await fetch(`${import.meta.env.BASE_URL}v1/tickets/${ticketId}`, {
         headers: {
           Authorization: `Bearer ${auth.user.access_token}`,
         },

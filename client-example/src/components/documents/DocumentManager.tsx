@@ -61,7 +61,7 @@ const DocumentUploader = ({ onUploadSuccess, ticketId }: DocumentUploaderProps) 
     uploads,
     ready,
   } = useDirectUpload({
-    directUploadsPath: "/rails/active_storage/direct_uploads",
+    directUploadsPath: import.meta.env.BASE_URL+"rails/active_storage/direct_uploads",
     onSuccess: handleSuccess,
     onBeforeBlobRequest: ({ xhr }) => {
       if (auth.user?.access_token) {

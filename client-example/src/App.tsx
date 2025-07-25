@@ -40,7 +40,7 @@ function App() {
       console.error('Silent renew failed:', error);
       // Invalidate the session and redirect to home page on silent renew error.
       auth.removeUser();
-      navigate('/');
+      navigate(import.meta.env.BASE_URL);
     };
 
     auth.events.addSilentRenewError(onSilentRenewError);
@@ -55,20 +55,20 @@ function App() {
   // a change in the authentication state from false to true.
   useEffect(() => {
     if (!wasAuthenticated && auth.isAuthenticated) {
-      navigate('/profile');
+      navigate(`${import.meta.env.BASE_URL}profile`);
     }
   }, [wasAuthenticated, auth.isAuthenticated, navigate, auth]);
 
   return (
     <div>
       <nav style={{ borderBottom: '1px solid #ccc', paddingBottom: '10px', marginBottom: '10px' }}>
-        <Link to="/">Home</Link> | <Link to="/profile">Profile</Link>
+        <Link to={import.meta.env.BASE_URL}>Home</Link> | <Link to={`${import.meta.env.BASE_URL}profile`}>Profile</Link>
       </nav>
 
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path={import.meta.env.BASE_URL} element={<Home />} />
         <Route
-          path="/profile"
+          path={`${import.meta.env.BASE_URL}profile`}
           element={
             <ProtectedRoute>
               <ProfilePage />
