@@ -10,7 +10,7 @@ export default defineConfig(({mode}) => {
     plugins: [react()],
     server: {
       proxy: {
-        '/v1/': {
+        [basePath+'v1/']: {
           target: 'http://localhost:3000/',
           changeOrigin: true,
         },
