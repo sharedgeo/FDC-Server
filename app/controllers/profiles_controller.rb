@@ -22,7 +22,9 @@ class ProfilesController < ApplicationController
       feature_collection = RGeo::GeoJSON.encode(
         RGeo::GeoJSON::FeatureCollection.new(
           features.map do |feature|
-            RGeo::GeoJSON::Feature.new(feature.geom, feature.id)
+            RGeo::GeoJSON::Feature.new(feature.geom, feature.id,
+                                       { id: feature.id, ticket_id: feature.ticket_id,
+                                         ticket_no: feature.ticket.ticket_no })
           end
         )
       )
