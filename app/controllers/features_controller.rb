@@ -15,6 +15,21 @@ class FeaturesController < ApplicationController
     end
   end
 
+  def update
+    feature = current_user.features.find_by(id: params[:id])
+
+    if feature
+      if feature.update(feature_params)
+        render json: { status: 'success', message: 'Feature updated successfully.' }, status: :ok
+      else
+        render json: { status: 'error', message: feature.errors.full_messages.to_sentence },
+               status: :unprocessable_entity
+      end
+    else
+      render json: { status: 'error', message: 'Feature not found.' }, status: :not_found
+    end
+  end
+
   def destroy
     feature = current_user.features.find_by(id: params[:id])
 

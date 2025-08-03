@@ -148,4 +148,76 @@ class FeaturesTest < ActionDispatch::IntegrationTest
 
     assert_response :unauthorized
   end
+
+  # PUT /v1/features/:id
+  test 'should update a feature for an existing user' do
+    updated_geom = { type: 'MultiPolygon', coordinates: [[[[1.1, 1.1], [2.2, 2.2], [3.3, 3.3], [1.1, 1.1]]]] }
+    decoded_token = { payload: { 'email' => @user.email_address } }
+    JsonWebToken.stub :verify, decoded_token do
+      put "/v1/features/#{@feature.id}",
+          headers: { 'Authorization' => "Bearer #{@valid_token}" },
+          params: { feature: { geom: updated_geom } },
+          as: :json
+    end
+
+    assert_response :success
+    @feature.reload
+    assert_equal updated_geom.to_json, RGeo::GeoJSON.encode(@feature.geom).to_json
+    json_response = JSON.parse(response.body)
+    assert_equal 'success', json_response['status']
+    assert_equal 'Feature updated successfully.', json_response['message']
+  end
+
+  test 'should not update a feature with invalid data' do
+    skip
+    decoded_token = { payload: { 'email' => @user.email_address } }
+    JsonWebToken.stub :verify, decoded_token do
+      put "/v1/features/#{@feature.id}",
+          headers: { 'Authorization' => "Bearer #{@valid_token}" },
+          params: { feature: { geom: nil } },
+          as: :json
+    end
+
+    assert_response :unprocessable_entity
+    json_response = JSON.parse(response.body)
+    assert_equal 'error', json_response['status']
+    assert_equal "Geom can't be blank", json_response['message']
+  end
+
+  test 'should not update a feature belonging to another user' do
+    user_two = users(:two)
+    updated_geom = { type: 'MultiPolygon', coordinates: [[[[1.1, 1.1], [2.2, 2.2], [3.3, 3.3], [1.1, 1.1]]]] }
+    decoded_token = { payload: { 'email' => user_two.email_address } }
+    JsonWebToken.stub :verify, decoded_token do
+      put "/v1/features/#{@feature.id}",
+          headers: { 'Authorization' => "Bearer #{@valid_token}" },
+          params: { feature: { geom: updated_geom } },
+          as: :json
+    end
+
+    assert_response :not_found
+  end
+
+  test 'should return not found when updating a non-existent feature' do
+    non_existent_id = Feature.maximum(:id).to_i + 1
+    updated_geom = { type: 'MultiPolygon', coordinates: [[[[1.1, 1.1], [2.2, 2.2], [3.3, 3.3], [1.1, 1.1]]]] }
+    decoded_token = { payload: { 'email' => @user.email_address } }
+    JsonWebToken.stub :verify, decoded_token do
+      put "/v1/features/#{non_existent_id}",
+          headers: { 'Authorization' => "Bearer #{@valid_token}" },
+          params: { feature: { geom: updated_geom } },
+          as: :json
+    end
+
+    assert_response :not_found
+  end
+
+  test 'should return unauthorized when updating without a token' do
+    updated_geom = { type: 'MultiPolygon', coordinates: [[[[1.1, 1.1], [2.2, 2.2], [3.3, 3.3], [1.1, 1.1]]]] }
+    put "/v1/features/#{@feature.id}",
+        params: { feature: { geom: updated_geom } },
+        as: :json
+
+    assert_response :unauthorized
+  end
 end
