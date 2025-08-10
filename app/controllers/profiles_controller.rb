@@ -8,11 +8,12 @@ class ProfilesController < ApplicationController
   def show
     tickets = current_user.all_tickets.map do |ticket|
       documents = ticket.ticket_attachments.where(user: current_user).flat_map do |attachment|
+        # FIXME: url_for for url didn't add the path. Possible to revert rails_blob_url at some point.
         attachment.documents.map do |doc|
           {
             signed_id: doc.signed_id,
             filename: doc.filename.to_s,
-            url: url_for(doc),
+            url: rails_blob_url(doc, script_name: ENV['RAILS_RELATIVE_URL_ROOT']),
             content_type: doc.content_type,
             byte_size: doc.byte_size
           }
