@@ -5,6 +5,8 @@ class Feature < ApplicationRecord
   belongs_to :ticket
 
   validates :geom, presence: true
+  validates :label, length: { maximum: 50 }
+  validates :notes, length: { maximum: 250 }
 
   # Geom needs to be a postgis geom
   def geom=(geojson)

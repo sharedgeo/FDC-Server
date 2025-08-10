@@ -9,6 +9,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     @valid_token = 'valid-token'
     @invalid_token = 'invalid-token'
     @feature_geom = { type: 'MultiPolygon', coordinates: [[[[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [1.0, 1.0]]]] }
+    @feature_params = { ticket_id: @ticket.id, geom: @feature_geom, label: 'Test Label', notes: 'Test notes.' }
     @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((10 10, 20 20, 30 30, 10 10)))')
   end
 
@@ -19,7 +20,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
       assert_difference('Feature.count', 1) do
         post '/v1/features',
              headers: { 'Authorization' => "Bearer #{@valid_token}" },
-             params: { feature: { ticket_id: @ticket.id, geom: @feature_geom } },
+             params: { feature: @feature_params },
              as: :json
       end
     end
@@ -29,6 +30,8 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     assert_equal @user, feature.user
     assert_equal @ticket, feature.ticket
     assert_equal @feature_geom.to_json, RGeo::GeoJSON.encode(feature.geom).to_json
+    assert_equal 'Test Label', feature.label
+    assert_equal 'Test notes.', feature.notes
 
     json_response = JSON.parse(response.body)
     assert_equal 'success', json_response['status']
@@ -44,7 +47,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
         assert_difference('Feature.count', 1) do
           post '/v1/features',
                headers: { 'Authorization' => "Bearer #{@valid_token}" },
-               params: { feature: { ticket_id: @ticket.id, geom: @feature_geom } },
+               params: { feature: @feature_params },
                as: :json
         end
       end
@@ -75,7 +78,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     JsonWebToken.stub :verify, ->(_token) { raise JWT::DecodeError, 'Invalid token' } do
       post '/v1/features',
            headers: { 'Authorization' => "Bearer #{@invalid_token}" },
-           params: { feature: { ticket_id: @ticket.id, geom: @feature_geom } },
+           params: { feature: @feature_params },
            as: :json
     end
 
@@ -84,7 +87,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
 
   test 'should return unauthorized without token when creating' do
     post '/v1/features',
-         params: { feature: { ticket_id: @ticket.id, geom: @feature_geom } },
+         params: { feature: @feature_params },
          as: :json
 
     assert_response :unauthorized
@@ -152,17 +155,22 @@ class FeaturesTest < ActionDispatch::IntegrationTest
   # PUT /v1/features/:id
   test 'should update a feature for an existing user' do
     updated_geom = { type: 'MultiPolygon', coordinates: [[[[1.1, 1.1], [2.2, 2.2], [3.3, 3.3], [1.1, 1.1]]]] }
+    updated_label = 'Updated Label'
+    updated_notes = 'Updated notes.'
+
     decoded_token = { payload: { 'email' => @user.email_address } }
     JsonWebToken.stub :verify, decoded_token do
       put "/v1/features/#{@feature.id}",
           headers: { 'Authorization' => "Bearer #{@valid_token}" },
-          params: { feature: { geom: updated_geom } },
+          params: { feature: { geom: updated_geom, label: updated_label, notes: updated_notes } },
           as: :json
     end
 
     assert_response :success
     @feature.reload
     assert_equal updated_geom.to_json, RGeo::GeoJSON.encode(@feature.geom).to_json
+    assert_equal updated_label, @feature.label
+    assert_equal updated_notes, @feature.notes
     json_response = JSON.parse(response.body)
     assert_equal 'success', json_response['status']
     assert_equal 'Feature updated successfully.', json_response['message']

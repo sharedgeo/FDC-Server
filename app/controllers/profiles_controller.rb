@@ -26,7 +26,9 @@ class ProfilesController < ApplicationController
             RGeo::GeoJSON::Feature.new(feature.geom, feature.id,
                                        { id: feature.id,
                                          ticket_id: feature.ticket_id,
-                                         ticket_no: feature.ticket.ticket_no })
+                                         ticket_no: feature.ticket.ticket_no,
+                                         label: feature.label,
+                                         notes: feature.notes })
           end
         )
       )

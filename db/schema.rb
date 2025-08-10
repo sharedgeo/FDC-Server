@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_07_20_201103) do
+ActiveRecord::Schema[7.1].define(version: 2025_08_10_194203) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
   enable_extension "postgis"
@@ -49,6 +49,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_07_20_201103) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "ticket_id"
+    t.string "label", limit: 50
+    t.string "notes", limit: 250
     t.index ["geom"], name: "index_features_on_geom", using: :gist
     t.index ["ticket_id"], name: "index_features_on_ticket_id"
     t.index ["user_id"], name: "index_features_on_user_id"
