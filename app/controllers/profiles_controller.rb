@@ -4,9 +4,10 @@ class ProfilesController < ApplicationController
   include Rails.application.routes.url_helpers
   before_action :authenticate_request!
 
+  # FIXME: Requirement needed. Current user can only access attachments and features they create
   def show
     tickets = current_user.all_tickets.map do |ticket|
-      documents = ticket.ticket_attachments.flat_map do |attachment|
+      documents = ticket.ticket_attachments.where(user: current_user).flat_map do |attachment|
         attachment.documents.map do |doc|
           {
             signed_id: doc.signed_id,
@@ -23,7 +24,8 @@ class ProfilesController < ApplicationController
         RGeo::GeoJSON::FeatureCollection.new(
           features.map do |feature|
             RGeo::GeoJSON::Feature.new(feature.geom, feature.id,
-                                       { id: feature.id, ticket_id: feature.ticket_id,
+                                       { id: feature.id,
+                                         ticket_id: feature.ticket_id,
                                          ticket_no: feature.ticket.ticket_no })
           end
         )
