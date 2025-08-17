@@ -4,6 +4,7 @@ class TicketsTest < ActionDispatch::IntegrationTest
   setup do
     @ticket = tickets(:one)
     @user = users(:one)
+    @bookmark = bookmarks(:one)
   end
 
   def auth_headers(token = "dummy_token")
@@ -23,6 +24,7 @@ class TicketsTest < ActionDispatch::IntegrationTest
       assert_equal @ticket.ticket_no, json_response["properties"]["ticket_no"]
       assert_equal @ticket.ticket_type, json_response["properties"]["ticket_type"]
       assert_not json_response["properties"].key?("geom"), "geom should not be in properties"
+      assert_equal @bookmark.id, json_response["properties"]["bookmark_id"]
     end
   end
 
@@ -59,6 +61,7 @@ class TicketsTest < ActionDispatch::IntegrationTest
       json_response = JSON.parse(response.body)
       assert_equal "Feature", json_response["type"]
       assert_equal @ticket.ticket_no, json_response["properties"]["ticket_no"]
+      assert_equal @bookmark.id, json_response["properties"]["bookmark_id"]
     end
   end
 

@@ -34,7 +34,7 @@ class ProfilesController < ApplicationController
         )
       )
 
-      ticket.as_json(only: %i[id ticket_no]).merge(
+      ticket.as_json(only: %i[id ticket_no], methods: :bookmark_id).merge(
         features: feature_collection,
         documents: documents.select do |doc|
           current_user.ticket_attachments.joins(:documents_attachments)

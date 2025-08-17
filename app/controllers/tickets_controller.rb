@@ -5,6 +5,7 @@ class TicketsController < ApplicationController
 
   def show
     ticket = Ticket.find(params[:id])
+    ticket.decorate(current_user)
     render json: ticket_to_geojson(ticket)
   rescue ActiveRecord::RecordNotFound
     render json: { status: 'error', message: 'Ticket not found' }, status: :not_found
@@ -13,6 +14,7 @@ class TicketsController < ApplicationController
   def search
     ticket = Ticket.find_by(ticket_no: params[:ticket_no])
     if ticket
+      ticket.decorate(current_user)
       render json: ticket_to_geojson(ticket)
     else
       render json: { status: 'error', message: 'Ticket not found' }, status: :not_found
@@ -35,7 +37,7 @@ class TicketsController < ApplicationController
       project: true
     )
     geometry = RGeo::GeoJSON.encode(geom_4326)
-    properties = ticket.attributes.except('geom')
+    properties = ticket.api_attributes
 
     {
       type: 'Feature',

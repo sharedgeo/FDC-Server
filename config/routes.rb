@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   scope '/v1' do
     post "/debug_jwt", to: "jwt_debugger#debug"
     get "/profile", to: "profiles#show"
+    resources :bookmarks, only: %i[create destroy]
     resources :documents, only: %i[create destroy]
     resources :features, only: %i[create update destroy]
     resources :tickets, only: [:show] do

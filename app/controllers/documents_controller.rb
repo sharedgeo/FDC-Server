@@ -21,6 +21,9 @@ class DocumentsController < ApplicationController
 
     if attachment&.record&.user == current_user
       attachment.purge
+      if attachment.record.documents.empty? # last document
+        attachment.record.destroy
+      end
       render json: { status: 'success', message: 'Document deleted successfully.' }, status: :ok
     else
       render json: { status: 'error', message: 'Document not found or unauthorized.' }, status: :not_found
