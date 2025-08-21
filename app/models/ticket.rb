@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Ticket < ApplicationRecord
+  include Geom4326
+
   has_many :bookmarks
   has_many :features
   has_many :ticket_attachments
@@ -17,10 +19,14 @@ class Ticket < ApplicationRecord
     tmp
   end
 
-  # FIXME: Decide where transform takes place
-  def geom_as_4326
-    self.class.select('st_transform(geom, 4326) as tmp_geom').find(id).tmp_geom
-  rescue StandardError
-    ''
+  def to_geojson
+    geometry = RGeo::GeoJSON.encode(geom_as_4326)
+    properties = api_attributes
+
+    {
+      type: 'Feature',
+      geometry: geometry,
+      properties: properties
+    }
   end
 end

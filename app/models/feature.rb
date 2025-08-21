@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Feature < ApplicationRecord
+  include Geom4326
+
   belongs_to :user
   belongs_to :ticket
 
@@ -8,7 +10,6 @@ class Feature < ApplicationRecord
   validates :label, length: { maximum: 50 }
   validates :notes, length: { maximum: 250 }
 
-  # Geom needs to be a postgis geom
   def geom=(geojson)
     self[:geom] =
       if geojson.blank?
@@ -16,10 +17,12 @@ class Feature < ApplicationRecord
       elsif geojson.instance_of?(String)
         geojson
       else
-        RGeo::GeoJSON.decode(
-          geojson, json_parser: :json,
-                   geo_factory: RGeo::Geos.factory(srid: 6344)
-        )
+        wgs84_factory = RGeo::Geographic.spherical_factory(srid: 4326)
+
+        geom_4326 = RGeo::GeoJSON.decode( geojson, json_parser: :json, geo_factory: wgs84_factory)
+
+        target_factory = RGeo::Cartesian.factory(srid: 6344, proj4: :proj4)
+        RGeo::Feature.cast(geom_4326, factory: target_factory, project: true)
       end
   end
 end

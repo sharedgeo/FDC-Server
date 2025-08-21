@@ -8,7 +8,14 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     @ticket = tickets(:one)
     @valid_token = 'valid-token'
     @invalid_token = 'invalid-token'
-    @feature_geom = { type: 'MultiPolygon', coordinates: [[[[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [1.0, 1.0]]]] }
+    @feature_geom = {"type"=>"MultiPolygon",
+                     "coordinates"=>
+                      [[[[-93.26460625534939, 44.55938588334465],
+                         [-93.26461357080397, 44.56099989090898],
+                         [-93.25629104135598, 44.56101886960983],
+                         [-93.256283955978, 44.55940486098327],
+                         [-93.26460625534939, 44.55938588334465]]]]}
+
     @feature_params = { ticket_id: @ticket.id, geom: @feature_geom, label: 'Test Label', notes: 'Test notes.' }
     @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((10 10, 20 20, 30 30, 10 10)))')
   end
@@ -29,7 +36,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     feature = Feature.last
     assert_equal @user, feature.user
     assert_equal @ticket, feature.ticket
-    assert_equal @feature_geom.to_json, RGeo::GeoJSON.encode(feature.geom).to_json
+    assert_equal @feature_geom.to_json, feature.geom_as_4326.to_json
     assert_equal 'Test Label', feature.label
     assert_equal 'Test notes.', feature.notes
 
@@ -56,7 +63,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     assert_response :created
     new_user = User.find_by(email_address: new_user_email)
     assert new_user
-    assert(new_user.features.any? { |f| f.geom.as_text == RGeo::GeoJSON.decode(@feature_geom.to_json).as_text })
+    assert(new_user.features.any? { |f| f.geom_as_4326.as_text == RGeo::GeoJSON.decode(@feature_geom.to_json).as_text })
   end
 
   test 'should return bad request if geom parameter is missing' do
@@ -155,6 +162,15 @@ class FeaturesTest < ActionDispatch::IntegrationTest
   # PUT /v1/features/:id
   test 'should update a feature for an existing user' do
     updated_geom = { type: 'MultiPolygon', coordinates: [[[[1.1, 1.1], [2.2, 2.2], [3.3, 3.3], [1.1, 1.1]]]] }
+
+    updated_geom = {"type"=>"MultiPolygon",
+                    "coordinates"=>
+    [[[[-93.26460625534939, 44.55938588334465],
+       [-93.26461357080397, 44.56099989090898],
+       [-93.25629104135598, 44.56101886960983],
+       [-93.256283955978, 44.55940486098327],
+       [-93.26460625534939, 44.55938588334465]]]]}
+
     updated_label = 'Updated Label'
     updated_notes = 'Updated notes.'
 
@@ -168,7 +184,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     @feature.reload
-    assert_equal updated_geom.to_json, RGeo::GeoJSON.encode(@feature.geom).to_json
+    assert_equal updated_geom.to_json, RGeo::GeoJSON.encode(@feature.geom_as_4326).to_json
     assert_equal updated_label, @feature.label
     assert_equal updated_notes, @feature.notes
     json_response = JSON.parse(response.body)

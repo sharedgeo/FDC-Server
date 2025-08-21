@@ -51,7 +51,7 @@ class ProfilesTest < ActionDispatch::IntegrationTest
     assert_equal @feature.id, feature_data['id']
     assert_equal 'Test Label', feature_data['properties']['label']
     assert_equal 'Test notes.', feature_data['properties']['notes']
-    encoded_geom = JSON.parse(RGeo::GeoJSON.encode(@feature.geom).to_json)
+    encoded_geom = JSON.parse(RGeo::GeoJSON.encode(@feature.geom_as_4326).to_json)
     assert_equal encoded_geom['type'], feature_data['geometry']['type']
     assert_equal encoded_geom['coordinates'], feature_data['geometry']['coordinates']
 
