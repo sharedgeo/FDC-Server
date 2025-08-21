@@ -8,13 +8,13 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     @ticket = tickets(:one)
     @valid_token = 'valid-token'
     @invalid_token = 'invalid-token'
-    @feature_geom = {"type"=>"MultiPolygon",
-                     "coordinates"=>
+    @feature_geom = { 'type' => 'MultiPolygon',
+                      'coordinates' =>
                       [[[[-93.26460625534939, 44.55938588334465],
                          [-93.26461357080397, 44.56099989090898],
                          [-93.25629104135598, 44.56101886960983],
                          [-93.256283955978, 44.55940486098327],
-                         [-93.26460625534939, 44.55938588334465]]]]}
+                         [-93.26460625534939, 44.55938588334465]]]] }
 
     @feature_params = { ticket_id: @ticket.id, geom: @feature_geom, label: 'Test Label', notes: 'Test notes.' }
     @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((10 10, 20 20, 30 30, 10 10)))')
@@ -161,15 +161,13 @@ class FeaturesTest < ActionDispatch::IntegrationTest
 
   # PUT /v1/features/:id
   test 'should update a feature for an existing user' do
-    updated_geom = { type: 'MultiPolygon', coordinates: [[[[1.1, 1.1], [2.2, 2.2], [3.3, 3.3], [1.1, 1.1]]]] }
-
-    updated_geom = {"type"=>"MultiPolygon",
-                    "coordinates"=>
+    updated_geom = { 'type' => 'MultiPolygon',
+                     'coordinates' =>
     [[[[-93.26460625534939, 44.55938588334465],
        [-93.26461357080397, 44.56099989090898],
        [-93.25629104135598, 44.56101886960983],
        [-93.256283955978, 44.55940486098327],
-       [-93.26460625534939, 44.55938588334465]]]]}
+       [-93.26460625534939, 44.55938588334465]]]] }
 
     updated_label = 'Updated Label'
     updated_notes = 'Updated notes.'
