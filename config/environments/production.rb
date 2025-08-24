@@ -89,4 +89,9 @@ Rails.application.configure do
   # ]
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+
+  Rails.application.config.active_storage.previewers -= [
+    ActiveStorage::Previewer::PopplerPDFPreviewer,
+    ActiveStorage::Previewer::MuPDFPreviewer
+  ]
 end
