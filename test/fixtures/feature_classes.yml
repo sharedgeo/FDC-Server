@@ -1,0 +1,27 @@
+survey:
+  id: survey
+  code: SUR
+  name: Survey
+  color_mapserv: "243 176 196"
+  color_hex: "#f3b0c4"
+
+electric:
+  id: electric
+  code: ELE
+  name: Electric
+  color_mapserv: "255 0 0"
+  color_hex: "#ff0000"
+
+oil_gas_steam:
+  id: oil_gas_steam
+  code: OGS
+  name: "Oil, Gas & Steam"
+  color_mapserv: "248 239 0"
+  color_hex: "#f8ef00"
+
+reference:
+  id: reference
+  code: REF
+  name: Reference
+  color_mapserv: "128 128 128"
+  color_hex: "#808080"

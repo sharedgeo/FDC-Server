@@ -5,6 +5,7 @@ class Feature < ApplicationRecord
 
   belongs_to :user
   belongs_to :ticket
+  belongs_to :feature_class
 
   validates :geom, presence: true
   validates :label, length: { maximum: 50 }

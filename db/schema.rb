@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_08_24_030401) do
+ActiveRecord::Schema[7.1].define(version: 2025_09_20_124741) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
   enable_extension "postgis"
@@ -52,6 +52,13 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_24_030401) do
     t.index ["user_id"], name: "index_bookmarks_on_user_id"
   end
 
+  create_table "feature_class", id: :text, force: :cascade do |t|
+    t.text "name", null: false
+    t.text "code", null: false
+    t.text "color_mapserv"
+    t.text "color_hex"
+  end
+
   create_table "features", force: :cascade do |t|
     t.bigint "user_id"
     t.geometry "geom", limit: {:srid=>6344, :type=>"geometry"}
@@ -60,6 +67,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_24_030401) do
     t.bigint "ticket_id"
     t.string "label", limit: 50
     t.string "notes", limit: 250
+    t.text "feature_class_id", default: "reference", null: false
+    t.index ["feature_class_id"], name: "index_features_on_feature_class_id"
     t.index ["geom"], name: "index_features_on_geom", using: :gist
     t.index ["ticket_id"], name: "index_features_on_ticket_id"
     t.index ["user_id"], name: "index_features_on_user_id"
@@ -93,5 +102,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_08_24_030401) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "features", "feature_class"
   add_foreign_key "features", "tickets"
 end
