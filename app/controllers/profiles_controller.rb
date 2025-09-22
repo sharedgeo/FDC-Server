@@ -20,7 +20,7 @@ class ProfilesController < ApplicationController
         end
       end
 
-      features = ticket.features.where(user: current_user)
+      features = ticket.features.includes(:feature_class).where(user: current_user)
       feature_collection = RGeo::GeoJSON.encode(
         RGeo::GeoJSON::FeatureCollection.new(
           features.map do |feature|
@@ -29,6 +29,9 @@ class ProfilesController < ApplicationController
                                          ticket_id: feature.ticket_id,
                                          ticket_no: feature.ticket.ticket_no,
                                          label: feature.label,
+                                         feature_class_name: feature&.feature_class&.name,
+                                         feature_class_id: feature.feature_class_id,
+                                         feature_color_hex: feature&.feature_class&.color_hex,
                                          notes: feature.notes })
           end
         )
