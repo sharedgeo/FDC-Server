@@ -44,6 +44,6 @@ class FeaturesController < ApplicationController
   private
 
   def feature_params
-    params.require(:feature).permit(:ticket_id, :label, :notes, :feature_class_id, geom: {})
+    params.require(:feature).permit(:ticket_id, :label, :notes, :feature_class_id, :unknown, geom: {})
   end
 end

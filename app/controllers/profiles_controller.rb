@@ -29,6 +29,7 @@ class ProfilesController < ApplicationController
                                          ticket_id: feature.ticket_id,
                                          ticket_no: feature.ticket.ticket_no,
                                          label: feature.label,
+                                         unknown: feature.unknown,
                                          feature_class_name: feature&.feature_class&.name,
                                          feature_class_id: feature.feature_class_id,
                                          feature_color_hex: feature&.feature_class&.color_hex,

@@ -17,7 +17,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
                          [-93.26460625534939, 44.55938588334465]]]] }
 
     @feature_params = { ticket_id: @ticket.id, geom: @feature_geom, label: 'Test Label', notes: 'Test notes.', feature_class_id: 'survey' }
-    @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((10 10, 20 20, 30 30, 10 10)))')
+    @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((10 10, 20 20, 30 30, 10 10)))', unknown: false)
   end
 
   # POST /v1/features
@@ -40,6 +40,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     assert_equal 'Test Label', feature.label
     assert_equal 'Test notes.', feature.notes
     assert_equal 'survey', feature.feature_class_id
+    assert_equal false, feature.unknown
 
     json_response = JSON.parse(response.body)
     assert_equal 'success', json_response['status']
@@ -173,12 +174,13 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     updated_label = 'Updated Label'
     updated_notes = 'Updated notes.'
     updated_feature_class_id = 'electric'
+    updated_unknown = true
 
     decoded_token = { payload: { 'email' => @user.email_address } }
     JsonWebToken.stub :verify, decoded_token do
       put "/v1/features/#{@feature.id}",
           headers: { 'Authorization' => "Bearer #{@valid_token}" },
-          params: { feature: { geom: updated_geom, label: updated_label, notes: updated_notes, feature_class_id: updated_feature_class_id } },
+          params: { feature: { geom: updated_geom, label: updated_label, notes: updated_notes, feature_class_id: updated_feature_class_id, unknown: updated_unknown } },
           as: :json
     end
 
@@ -188,6 +190,7 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     assert_equal updated_label, @feature.label
     assert_equal updated_notes, @feature.notes
     assert_equal updated_feature_class_id, @feature.feature_class_id
+    assert_equal updated_unknown, @feature.unknown
     json_response = JSON.parse(response.body)
     assert_equal 'success', json_response['status']
     assert_equal 'Feature updated successfully.', json_response['message']
