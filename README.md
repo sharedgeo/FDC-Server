@@ -35,12 +35,6 @@ A Ruby on Rails based api server
 3.  Create the DB; seed some data: `bin/rails db:create db:schema:load db:seed`
 4.  Start the server: `bin/rails server`
 
-### Running the client example 
-
-*   Created with node 24.1.0
-*   `cd client-example`
-*   `npm install`
-*   `npm run dev`
 
 ### Running tests
 
