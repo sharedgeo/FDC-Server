@@ -22,7 +22,7 @@ class Feature < ApplicationRecord
 
         geom_4326 = RGeo::GeoJSON.decode( geojson, json_parser: :json, geo_factory: wgs84_factory)
 
-        target_factory = RGeo::Cartesian.factory(srid: 6344, proj4: :proj4)
+        target_factory = RGeo::Cartesian.factory(srid: SridConstants::SRID_6344, proj4: :proj4)
         RGeo::Feature.cast(geom_4326, factory: target_factory, project: true)
       end
   end

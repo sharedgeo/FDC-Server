@@ -5,7 +5,7 @@ module Geom4326
     proj4_4326 = '+proj=longlat +datum=WGS84 +no_defs'
 
     factory_4326 = RGeo::Geographic.spherical_factory(
-      srid: 4326,
+      srid: SridConstants::SRID_4326,
       proj4: proj4_4326
     )
 

@@ -2,11 +2,11 @@
 
 class WfsService
   NAMESPACE = 'http://fdc.example.com/features'
-  SRS_NAME = 'urn:ogc:def:crs:EPSG::6344'
+  SRS_NAME = SridConstants::SRS_NAME_6344
   GML_VERSION = '3.2.1'
   WFS_VERSION = '2.0.0'
   DEFAULT_COUNT = 1000
-  MAX_COUNT = 1000 # Maximum features that can be requested in a single query
+  MAX_COUNT = 1000
 
   # Feature type definitions
   FEATURE_TYPES = {
@@ -364,7 +364,7 @@ class WfsService
           # Use ST_MakeEnvelope with parameterized query to prevent SQL injection
           features = features.where(
             'ST_Intersects(geom, ST_MakeEnvelope(?, ?, ?, ?, ?))',
-            minx, miny, maxx, maxy, 6344
+            minx, miny, maxx, maxy, SridConstants::SRID_6344
           )
         else
           Rails.logger.warn("Invalid BBOX parameter format or non-finite coordinates")
@@ -498,13 +498,13 @@ class WfsService
   def self.calculate_layer_extent(geometry_types)
     # Build SQL query to calculate extent for this geometry type
     # ST_Extent is an aggregate function, so we need to use a subquery
-    # ST_Extent returns a box with SRID 0, so we need to set it to 6344 before transforming
+    # ST_Extent returns a box with SRID 0, so we need to set it to SRID_6344 before transforming
     sql = <<-SQL
       SELECT
-        ST_XMin(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as min_lon,
-        ST_YMin(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as min_lat,
-        ST_XMax(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as max_lon,
-        ST_YMax(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as max_lat
+        ST_XMin(ST_Transform(ST_SetSRID(extent_geom, #{SridConstants::SRID_6344}), 4326)) as min_lon,
+        ST_YMin(ST_Transform(ST_SetSRID(extent_geom, #{SridConstants::SRID_6344}), 4326)) as min_lat,
+        ST_XMax(ST_Transform(ST_SetSRID(extent_geom, #{SridConstants::SRID_6344}), 4326)) as max_lon,
+        ST_YMax(ST_Transform(ST_SetSRID(extent_geom, #{SridConstants::SRID_6344}), 4326)) as max_lat
       FROM (
         SELECT ST_Extent(geom)::geometry as extent_geom
         FROM features
