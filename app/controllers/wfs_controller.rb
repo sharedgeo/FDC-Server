@@ -36,7 +36,8 @@ class WfsController < ActionController::API
   end
 
   def handle_describe_feature_type
-    xml_response = WfsService.describe_feature_type
+    type_names = params[:TYPENAMES] || params[:typeNames] || params[:typenames] || params[:TYPENAME] || params[:typeName] || params[:typename]
+    xml_response = WfsService.describe_feature_type(type_names: type_names)
     render xml: xml_response, content_type: 'application/gml+xml; version=3.2'
   end
 

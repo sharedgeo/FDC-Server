@@ -35,11 +35,13 @@ class WfsTest < ActionDispatch::IntegrationTest
     assert_includes operation_names, 'DescribeFeatureType'
     assert_includes operation_names, 'GetFeature'
 
-    # Check for Feature Type
-    feature_type_name = xml.at_xpath('//wfs:FeatureType/wfs:Name',
-                                     'wfs' => 'http://www.opengis.net/wfs/2.0')
-    assert_not_nil feature_type_name
-    assert_equal 'unknown_features', feature_type_name.text
+    # Check for Feature Types - should have all three geometry-specific types
+    feature_type_names = xml.xpath('//wfs:FeatureType/wfs:Name',
+                                    'wfs' => 'http://www.opengis.net/wfs/2.0').map(&:text)
+    assert_equal 3, feature_type_names.count, 'Should have 3 feature types'
+    assert_includes feature_type_names, 'unknown_multipoint'
+    assert_includes feature_type_names, 'unknown_multiline'
+    assert_includes feature_type_names, 'unknown_multipolygon'
 
     # Check for CRS
     default_crs = xml.at_xpath('//wfs:FeatureType/wfs:DefaultCRS',
@@ -69,7 +71,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   # DescribeFeatureType Tests
-  test 'DescribeFeatureType returns valid XSD schema' do
+  test 'DescribeFeatureType returns valid XSD schema with all three types when no typeNames specified' do
     get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'DescribeFeatureType' }
 
     assert_response :success
@@ -78,23 +80,48 @@ class WfsTest < ActionDispatch::IntegrationTest
     xml = Nokogiri::XML(response.body)
     assert xml.errors.empty?, "XML should be valid: #{xml.errors.inspect}"
 
-    # Check for schema root element (no namespace prefix on root element)
+    # Check for schema root element
     schema = xml.at_xpath('//schema') || xml.at_xpath('//xsd:schema',
                          'xsd' => 'http://www.w3.org/2001/XMLSchema')
     assert_not_nil schema, 'Should have schema root element'
 
-    # Check for feature element definition
-    feature_element = xml.at_xpath('//xsd:element[@name="unknown_features"]',
-                                   'xsd' => 'http://www.w3.org/2001/XMLSchema')
-    assert_not_nil feature_element, 'Should define unknown_features element'
+    # Check for all three feature element definitions
+    multipoint_element = xml.at_xpath('//xsd:element[@name="unknown_multipoint"]',
+                                      'xsd' => 'http://www.w3.org/2001/XMLSchema')
+    assert_not_nil multipoint_element, 'Should define unknown_multipoint element'
 
-    # Check for required attributes in the schema
+    multiline_element = xml.at_xpath('//xsd:element[@name="unknown_multiline"]',
+                                     'xsd' => 'http://www.w3.org/2001/XMLSchema')
+    assert_not_nil multiline_element, 'Should define unknown_multiline element'
+
+    multipolygon_element = xml.at_xpath('//xsd:element[@name="unknown_multipolygon"]',
+                                       'xsd' => 'http://www.w3.org/2001/XMLSchema')
+    assert_not_nil multipolygon_element, 'Should define unknown_multipolygon element'
+
+    # Check for required attributes in one of the schemas (they all have the same structure)
     required_fields = %w[id label notes feature_class_id created_at updated_at geom]
     required_fields.each do |field|
       element = xml.at_xpath("//xsd:element[@name='#{field}']",
                             'xsd' => 'http://www.w3.org/2001/XMLSchema')
       assert_not_nil element, "Should define #{field} element"
     end
+  end
+
+  test 'DescribeFeatureType returns single type when typeNames specified' do
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'DescribeFeatureType', TYPENAMES: 'unknown_multipoint' }
+
+    assert_response :success
+    xml = Nokogiri::XML(response.body)
+
+    # Should have only the requested type
+    multipoint_element = xml.at_xpath('//xsd:element[@name="unknown_multipoint"]',
+                                      'xsd' => 'http://www.w3.org/2001/XMLSchema')
+    assert_not_nil multipoint_element, 'Should define unknown_multipoint element'
+
+    # Should not have the other types
+    multiline_element = xml.at_xpath('//xsd:element[@name="unknown_multiline"]',
+                                     'xsd' => 'http://www.w3.org/2001/XMLSchema')
+    assert_nil multiline_element, 'Should not define unknown_multiline element'
   end
 
   test 'DescribeFeatureType works with lowercase parameters' do
@@ -109,7 +136,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   # GetFeature Tests
-  test 'GetFeature returns GML FeatureCollection with unknown features only' do
+  test 'GetFeature returns GML FeatureCollection with all unknown features from all layers' do
     get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature' }
 
     assert_response :success
@@ -123,37 +150,42 @@ class WfsTest < ActionDispatch::IntegrationTest
                                      'wfs' => 'http://www.opengis.net/wfs/2.0')
     assert_not_nil feature_collection, 'Should have FeatureCollection root element'
 
-    # Check number of features returned
+    # Check number of features returned - should be 7 (3 polygons, 2 points, 2 lines)
     members = xml.xpath('//wfs:member',
                        'wfs' => 'http://www.opengis.net/wfs/2.0')
-    assert_equal 3, members.count, 'Should return 3 unknown features'
+    assert_equal 7, members.count, 'Should return 7 unknown features'
 
     # Verify numberMatched and numberReturned attributes
-    assert_equal '3', feature_collection['numberMatched']
-    assert_equal '3', feature_collection['numberReturned']
+    assert_equal '7', feature_collection['numberMatched']
+    assert_equal '7', feature_collection['numberReturned']
 
-    # Check that features have proper structure
+    # Check that features have proper structure - should have all three types
     namespace = 'http://fdc.example.com/features'
-    features = xml.xpath('//fdc:unknown_features',
-                        'fdc' => namespace)
-    assert_equal 3, features.count
+
+    multipolygon_features = xml.xpath('//fdc:unknown_multipolygon', 'fdc' => namespace)
+    multipoint_features = xml.xpath('//fdc:unknown_multipoint', 'fdc' => namespace)
+    multiline_features = xml.xpath('//fdc:unknown_multiline', 'fdc' => namespace)
+
+    assert_equal 3, multipolygon_features.count, 'Should have 3 multipolygon features'
+    assert_equal 2, multipoint_features.count, 'Should have 2 multipoint features'
+    assert_equal 2, multiline_features.count, 'Should have 2 multiline features'
 
     # Verify first feature has all expected elements
-    first_feature = features.first
+    first_feature = members.first.at_xpath('.//*[@gml:id]', 'gml' => 'http://www.opengis.net/gml/3.2')
     assert_not_nil first_feature.at_xpath('fdc:id', 'fdc' => namespace)
     assert_not_nil first_feature.at_xpath('fdc:feature_class_id', 'fdc' => namespace)
     assert_not_nil first_feature.at_xpath('fdc:created_at', 'fdc' => namespace)
     assert_not_nil first_feature.at_xpath('fdc:updated_at', 'fdc' => namespace)
     assert_not_nil first_feature.at_xpath('fdc:geom', 'fdc' => namespace)
 
-    # Verify geometry contains GML
+    # Verify geometry contains GML (check for any Multi* geometry type)
     geom_element = first_feature.at_xpath('fdc:geom', 'fdc' => namespace)
-    gml_element = geom_element.at_xpath('.//gml:MultiSurface',
+    multi_geom = geom_element.at_xpath('.//*[local-name()="MultiSurface" or local-name()="MultiPoint" or local-name()="MultiCurve"]',
                                        'gml' => 'http://www.opengis.net/gml/3.2')
-    assert_not_nil gml_element, 'Geometry should contain GML MultiSurface'
+    assert_not_nil multi_geom, 'Geometry should contain GML Multi* element'
 
     # Verify CRS
-    assert_equal 'urn:ogc:def:crs:EPSG::6344', gml_element['srsName']
+    assert_equal 'urn:ogc:def:crs:EPSG::6344', multi_geom['srsName']
   end
 
   test 'GetFeature does not return features with unknown=false' do
@@ -162,11 +194,11 @@ class WfsTest < ActionDispatch::IntegrationTest
     assert_response :success
     xml = Nokogiri::XML(response.body)
 
-    # We have 3 unknown features and 2 known features in fixtures
-    # Should only return the 3 unknown ones
+    # We have 7 unknown features and 3 known features in fixtures
+    # Should only return the 7 unknown ones
     members = xml.xpath('//wfs:member',
                        'wfs' => 'http://www.opengis.net/wfs/2.0')
-    assert_equal 3, members.count
+    assert_equal 7, members.count
 
     # Verify none of the returned features are the "known" ones
     namespace = 'http://fdc.example.com/features'
@@ -175,6 +207,7 @@ class WfsTest < ActionDispatch::IntegrationTest
 
     assert_not_includes labels, 'Known Survey Feature'
     assert_not_includes labels, 'Known Electric Feature'
+    assert_not_includes labels, 'Known Point Feature'
   end
 
   test 'GetFeature with BBOX filters features spatially' do
@@ -369,8 +402,8 @@ class WfsTest < ActionDispatch::IntegrationTest
     feature_collection = xml.at_xpath('//wfs:FeatureCollection',
                                      'wfs' => 'http://www.opengis.net/wfs/2.0')
 
-    # numberMatched should be total (3)
-    assert_equal '3', feature_collection['numberMatched']
+    # numberMatched should be total (7)
+    assert_equal '7', feature_collection['numberMatched']
 
     # numberReturned should be limited (2)
     assert_equal '2', feature_collection['numberReturned']
@@ -390,7 +423,7 @@ class WfsTest < ActionDispatch::IntegrationTest
                                      'wfs' => 'http://www.opengis.net/wfs/2.0')
 
     # Should have count but no features
-    assert_equal '3', feature_collection['numberMatched']
+    assert_equal '7', feature_collection['numberMatched']
     assert_equal '0', feature_collection['numberReturned']
 
     members = xml.xpath('//wfs:member',
@@ -411,5 +444,147 @@ class WfsTest < ActionDispatch::IntegrationTest
     schema_location = feature_collection.attribute_with_ns('schemaLocation', 'http://www.w3.org/2001/XMLSchema-instance')
     assert_not_nil schema_location
     assert_match(/DescribeFeatureType/, schema_location.value)
+  end
+
+  # Geometry Type Filtering Tests
+  test 'GetFeature with typeNames=unknown_multipoint returns only point features' do
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint' }
+
+    assert_response :success
+    xml = Nokogiri::XML(response.body)
+
+    namespace = 'http://fdc.example.com/features'
+
+    # Should have 2 point features
+    multipoint_features = xml.xpath('//fdc:unknown_multipoint', 'fdc' => namespace)
+    assert_equal 2, multipoint_features.count, 'Should return 2 point features'
+
+    # Should not have other types
+    multiline_features = xml.xpath('//fdc:unknown_multiline', 'fdc' => namespace)
+    multipolygon_features = xml.xpath('//fdc:unknown_multipolygon', 'fdc' => namespace)
+    assert_equal 0, multiline_features.count, 'Should not return line features'
+    assert_equal 0, multipolygon_features.count, 'Should not return polygon features'
+
+    # Verify geometry is MultiPoint
+    geom = multipoint_features.first.at_xpath('.//gml:MultiPoint',
+                                              'gml' => 'http://www.opengis.net/gml/3.2')
+    assert_not_nil geom, 'Geometry should be MultiPoint'
+  end
+
+  test 'GetFeature with typeNames=unknown_multiline returns only line features' do
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multiline' }
+
+    assert_response :success
+    xml = Nokogiri::XML(response.body)
+
+    namespace = 'http://fdc.example.com/features'
+
+    # Should have 2 line features
+    multiline_features = xml.xpath('//fdc:unknown_multiline', 'fdc' => namespace)
+    assert_equal 2, multiline_features.count, 'Should return 2 line features'
+
+    # Should not have other types
+    multipoint_features = xml.xpath('//fdc:unknown_multipoint', 'fdc' => namespace)
+    multipolygon_features = xml.xpath('//fdc:unknown_multipolygon', 'fdc' => namespace)
+    assert_equal 0, multipoint_features.count, 'Should not return point features'
+    assert_equal 0, multipolygon_features.count, 'Should not return polygon features'
+
+    # Verify geometry is MultiCurve (MultiLineString)
+    geom = multiline_features.first.at_xpath('.//gml:MultiCurve',
+                                             'gml' => 'http://www.opengis.net/gml/3.2')
+    assert_not_nil geom, 'Geometry should be MultiCurve'
+  end
+
+  test 'GetFeature with typeNames=unknown_multipolygon returns only polygon features' do
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipolygon' }
+
+    assert_response :success
+    xml = Nokogiri::XML(response.body)
+
+    namespace = 'http://fdc.example.com/features'
+
+    # Should have 3 polygon features
+    multipolygon_features = xml.xpath('//fdc:unknown_multipolygon', 'fdc' => namespace)
+    assert_equal 3, multipolygon_features.count, 'Should return 3 polygon features'
+
+    # Should not have other types
+    multipoint_features = xml.xpath('//fdc:unknown_multipoint', 'fdc' => namespace)
+    multiline_features = xml.xpath('//fdc:unknown_multiline', 'fdc' => namespace)
+    assert_equal 0, multipoint_features.count, 'Should not return point features'
+    assert_equal 0, multiline_features.count, 'Should not return line features'
+
+    # Verify geometry is MultiSurface (MultiPolygon)
+    geom = multipolygon_features.first.at_xpath('.//gml:MultiSurface',
+                                                'gml' => 'http://www.opengis.net/gml/3.2')
+    assert_not_nil geom, 'Geometry should be MultiSurface'
+  end
+
+  test 'GetFeature with multiple typeNames returns features from both types' do
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint,unknown_multiline' }
+
+    assert_response :success
+    xml = Nokogiri::XML(response.body)
+
+    namespace = 'http://fdc.example.com/features'
+
+    # Should have 2 point + 2 line = 4 features
+    members = xml.xpath('//wfs:member', 'wfs' => 'http://www.opengis.net/wfs/2.0')
+    assert_equal 4, members.count, 'Should return 4 features'
+
+    multipoint_features = xml.xpath('//fdc:unknown_multipoint', 'fdc' => namespace)
+    multiline_features = xml.xpath('//fdc:unknown_multiline', 'fdc' => namespace)
+    assert_equal 2, multipoint_features.count, 'Should have 2 point features'
+    assert_equal 2, multiline_features.count, 'Should have 2 line features'
+
+    # Should not have polygons
+    multipolygon_features = xml.xpath('//fdc:unknown_multipolygon', 'fdc' => namespace)
+    assert_equal 0, multipolygon_features.count, 'Should not return polygon features'
+  end
+
+  test 'GetFeature casts Point to MultiPoint' do
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint' }
+
+    assert_response :success
+    xml = Nokogiri::XML(response.body)
+
+    namespace = 'http://fdc.example.com/features'
+
+    # All point features should be MultiPoint, even if originally Point
+    multipoint_features = xml.xpath('//fdc:unknown_multipoint', 'fdc' => namespace)
+
+    multipoint_features.each do |feature|
+      # Every feature should have MultiPoint geometry, not Point
+      multi_geom = feature.at_xpath('.//gml:MultiPoint',
+                                   'gml' => 'http://www.opengis.net/gml/3.2')
+      assert_not_nil multi_geom, 'All point geometries should be cast to MultiPoint'
+
+      # Should not find any Point geometry (only MultiPoint)
+      point_geom = feature.at_xpath('.//gml:Point[not(ancestor::gml:MultiPoint)]',
+                                   'gml' => 'http://www.opengis.net/gml/3.2')
+      assert_nil point_geom, 'Should not have standalone Point geometry'
+    end
+  end
+
+  test 'GetFeature with BBOX and typeNames filters correctly' do
+    # BBOX around point features (150, 250, 260 coordinate range)
+    get '/wfs', params: {
+      SERVICE: 'WFS',
+      REQUEST: 'GetFeature',
+      TYPENAMES: 'unknown_multipoint',
+      BBOX: '100,100,300,300'
+    }
+
+    assert_response :success
+    xml = Nokogiri::XML(response.body)
+
+    namespace = 'http://fdc.example.com/features'
+    multipoint_features = xml.xpath('//fdc:unknown_multipoint', 'fdc' => namespace)
+
+    # Should have at least one point feature in this BBOX
+    assert multipoint_features.count >= 1, 'Should return point features within BBOX'
+
+    # Should only have multipoint features
+    multiline_features = xml.xpath('//fdc:unknown_multiline', 'fdc' => namespace)
+    assert_equal 0, multiline_features.count, 'Should not return line features when typeNames=unknown_multipoint'
   end
 end

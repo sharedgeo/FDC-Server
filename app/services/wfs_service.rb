@@ -2,12 +2,40 @@
 
 class WfsService
   NAMESPACE = 'http://fdc.example.com/features'
-  FEATURE_TYPE_NAME = 'unknown_features'
-  FEATURE_TYPE_TITLE = 'Unknown Features'
   SRS_NAME = 'urn:ogc:def:crs:EPSG::6344'
   GML_VERSION = '3.2.1'
   WFS_VERSION = '2.0.0'
   DEFAULT_COUNT = 1000
+
+  # Feature type definitions
+  FEATURE_TYPES = {
+    'unknown_multipoint' => {
+      name: 'unknown_multipoint',
+      title: 'Unknown MultiPoint Features',
+      geometry_types: %w[POINT MULTIPOINT],
+      gml_type: 'gml:MultiPointPropertyType'
+    },
+    'unknown_multiline' => {
+      name: 'unknown_multiline',
+      title: 'Unknown MultiLineString Features',
+      geometry_types: %w[LINESTRING MULTILINESTRING],
+      gml_type: 'gml:MultiCurvePropertyType'
+    },
+    'unknown_multipolygon' => {
+      name: 'unknown_multipolygon',
+      title: 'Unknown MultiPolygon Features',
+      geometry_types: %w[POLYGON MULTIPOLYGON],
+      gml_type: 'gml:MultiSurfacePropertyType'
+    }
+  }.freeze
+
+  def self.feature_type_names
+    FEATURE_TYPES.keys
+  end
+
+  def self.feature_type_config(type_name)
+    FEATURE_TYPES[type_name]
+  end
 
   def self.get_capabilities(base_url)
     builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
@@ -121,13 +149,15 @@ class WfsService
 
         # FeatureTypeList
         xml['wfs'].FeatureTypeList do
-          xml['wfs'].FeatureType do
-            xml['wfs'].Name FEATURE_TYPE_NAME
-            xml['wfs'].Title FEATURE_TYPE_TITLE
-            xml['wfs'].DefaultCRS SRS_NAME
-            xml['ows'].WGS84BoundingBox do
-              xml['ows'].LowerCorner '-180 -90'
-              xml['ows'].UpperCorner '180 90'
+          FEATURE_TYPES.each do |type_name, config|
+            xml['wfs'].FeatureType do
+              xml['wfs'].Name config[:name]
+              xml['wfs'].Title config[:title]
+              xml['wfs'].DefaultCRS SRS_NAME
+              xml['ows'].WGS84BoundingBox do
+                xml['ows'].LowerCorner '-180 -90'
+                xml['ows'].UpperCorner '180 90'
+              end
             end
           end
         end
@@ -231,7 +261,17 @@ class WfsService
     builder.to_xml
   end
 
-  def self.describe_feature_type
+  def self.describe_feature_type(type_names: nil)
+    # Parse type_names parameter - can be comma-separated
+    requested_types = if type_names.present?
+                        type_names.split(',').map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
+                      else
+                        feature_type_names
+                      end
+
+    # If no valid types requested, default to all types
+    requested_types = feature_type_names if requested_types.empty?
+
     builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
       xml['xsd'].schema(
         'xmlns:xsd' => 'http://www.w3.org/2001/XMLSchema',
@@ -244,21 +284,27 @@ class WfsService
         xml['xsd'].import('namespace' => 'http://www.opengis.net/gml/3.2',
                           'schemaLocation' => 'http://schemas.opengis.net/gml/3.2.1/gml.xsd')
 
-        # Define the feature type
-        xml['xsd'].element('name' => FEATURE_TYPE_NAME, 'type' => "fdc:#{FEATURE_TYPE_NAME}Type",
-                           'substitutionGroup' => 'gml:AbstractFeature')
+        # Generate schema for each requested feature type
+        requested_types.each do |type_name|
+          config = FEATURE_TYPES[type_name]
 
-        xml['xsd'].complexType('name' => "#{FEATURE_TYPE_NAME}Type") do
-          xml['xsd'].complexContent do
-            xml['xsd'].extension('base' => 'gml:AbstractFeatureType') do
-              xml['xsd'].sequence do
-                xml['xsd'].element('name' => 'id', 'type' => 'xsd:integer', 'minOccurs' => '1')
-                xml['xsd'].element('name' => 'label', 'type' => 'xsd:string', 'minOccurs' => '0')
-                xml['xsd'].element('name' => 'notes', 'type' => 'xsd:string', 'minOccurs' => '0')
-                xml['xsd'].element('name' => 'feature_class_id', 'type' => 'xsd:string', 'minOccurs' => '1')
-                xml['xsd'].element('name' => 'created_at', 'type' => 'xsd:dateTime', 'minOccurs' => '1')
-                xml['xsd'].element('name' => 'updated_at', 'type' => 'xsd:dateTime', 'minOccurs' => '1')
-                xml['xsd'].element('name' => 'geom', 'type' => 'gml:MultiSurfacePropertyType', 'minOccurs' => '1')
+          # Define the feature type element
+          xml['xsd'].element('name' => config[:name], 'type' => "fdc:#{config[:name]}Type",
+                             'substitutionGroup' => 'gml:AbstractFeature')
+
+          # Define the feature type complexType
+          xml['xsd'].complexType('name' => "#{config[:name]}Type") do
+            xml['xsd'].complexContent do
+              xml['xsd'].extension('base' => 'gml:AbstractFeatureType') do
+                xml['xsd'].sequence do
+                  xml['xsd'].element('name' => 'id', 'type' => 'xsd:integer', 'minOccurs' => '1')
+                  xml['xsd'].element('name' => 'label', 'type' => 'xsd:string', 'minOccurs' => '0')
+                  xml['xsd'].element('name' => 'notes', 'type' => 'xsd:string', 'minOccurs' => '0')
+                  xml['xsd'].element('name' => 'feature_class_id', 'type' => 'xsd:string', 'minOccurs' => '1')
+                  xml['xsd'].element('name' => 'created_at', 'type' => 'xsd:dateTime', 'minOccurs' => '1')
+                  xml['xsd'].element('name' => 'updated_at', 'type' => 'xsd:dateTime', 'minOccurs' => '1')
+                  xml['xsd'].element('name' => 'geom', 'type' => config[:gml_type], 'minOccurs' => '1')
+                end
               end
             end
           end
@@ -269,7 +315,22 @@ class WfsService
   end
 
   def self.get_feature(bbox: nil, count: nil, result_type: nil, type_names: nil, base_url: nil)
-    features = Feature.where(unknown: false)
+    # Parse type_names parameter - can be comma-separated
+    requested_types = if type_names.present?
+                        type_names.split(',').map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
+                      else
+                        feature_type_names
+                      end
+
+    # If no valid types requested, default to all types
+    requested_types = feature_type_names if requested_types.empty?
+
+    # Start with unknown features
+    features = Feature.where(unknown: true)
+
+    # Build geometry type filter for requested types
+    all_geometry_types = requested_types.flat_map { |type| FEATURE_TYPES[type][:geometry_types] }
+    features = features.where('GeometryType(geom) IN (?)', all_geometry_types)
 
     # Apply bounding box filter if provided
     if bbox.present?
@@ -281,7 +342,7 @@ class WfsService
       end
     end
 
-    # Get total count
+    # Get total count before applying limit
     number_matched = features.count
 
     # Apply count limit if provided
@@ -296,12 +357,27 @@ class WfsService
       return build_hits_response(number_matched)
     end
 
-    # Build schema location with dynamic base URL
-    schema_location = if base_url.present?
-                        "#{NAMESPACE} #{base_url}?service=WFS&version=2.0.0&request=DescribeFeatureType&typeName=#{FEATURE_TYPE_NAME}"
-                      else
-                        "#{NAMESPACE} #{NAMESPACE}/schema"
-                      end
+    # Use ST_Multi to cast geometries and load features with casted geometry
+    features_with_multi_geom = features.select(
+      'features.id',
+      'features.label',
+      'features.notes',
+      'features.feature_class_id',
+      'features.created_at',
+      'features.updated_at',
+      'ST_Multi(geom) as geom',
+      'GeometryType(geom) as original_geom_type'
+    ).to_a
+
+    # Build schema location with all requested types
+    schema_location_parts = requested_types.map do |type|
+      if base_url.present?
+        "#{NAMESPACE} #{base_url}?service=WFS&version=2.0.0&request=DescribeFeatureType&typeName=#{type}"
+      else
+        "#{NAMESPACE} #{NAMESPACE}/schema"
+      end
+    end
+    schema_location = schema_location_parts.first # Use first one for simplicity
 
     builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
       xml['wfs'].FeatureCollection(
@@ -312,11 +388,20 @@ class WfsService
         'xsi:schemaLocation' => "#{schema_location} http://www.opengis.net/wfs/2.0 http://schemas.opengis.net/wfs/2.0/wfs.xsd http://www.opengis.net/gml/3.2 http://schemas.opengis.net/gml/3.2.1/gml.xsd",
         'timeStamp' => Time.now.utc.iso8601,
         'numberMatched' => number_matched.to_s,
-        'numberReturned' => features.count.to_s
+        'numberReturned' => features_with_multi_geom.length.to_s
       ) do
-        features.find_each do |feature|
+        features_with_multi_geom.each do |feature|
+          # Determine which feature type this belongs to based on original geometry type
+          original_type = feature.original_geom_type
+          feature_type_name = requested_types.find do |type|
+            FEATURE_TYPES[type][:geometry_types].include?(original_type)
+          end
+
+          # Skip if we couldn't determine the type (shouldn't happen with our query)
+          next unless feature_type_name
+
           xml['wfs'].member do
-            xml['fdc'].send(FEATURE_TYPE_NAME, 'gml:id' => "feature.#{feature.id}") do
+            xml['fdc'].send(feature_type_name, 'gml:id' => "feature.#{feature.id}") do
               xml['fdc'].id feature.id
               xml['fdc'].label feature.label if feature.label.present?
               xml['fdc'].notes feature.notes if feature.notes.present?
@@ -324,6 +409,7 @@ class WfsService
               xml['fdc'].created_at feature.created_at.utc.iso8601
               xml['fdc'].updated_at feature.updated_at.utc.iso8601
               xml['fdc'].geom do
+                # feature.geom is already ST_Multi() casted
                 build_gml_geometry(xml, feature.geom)
               end
             end
