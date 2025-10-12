@@ -6,6 +6,7 @@ class WfsService
   GML_VERSION = '3.2.1'
   WFS_VERSION = '2.0.0'
   DEFAULT_COUNT = 1000
+  MAX_COUNT = 1000 # Maximum features that can be requested in a single query
 
   # Feature type definitions
   FEATURE_TYPES = {
@@ -154,9 +155,13 @@ class WfsService
               xml['wfs'].Name config[:name]
               xml['wfs'].Title config[:title]
               xml['wfs'].DefaultCRS SRS_NAME
+
+              # Calculate actual extent for this geometry type
+              extent = self.calculate_layer_extent(config[:geometry_types])
+
               xml['ows'].WGS84BoundingBox do
-                xml['ows'].LowerCorner '-180 -90'
-                xml['ows'].UpperCorner '180 90'
+                xml['ows'].LowerCorner "#{extent[:min_lon]} #{extent[:min_lat]}"
+                xml['ows'].UpperCorner "#{extent[:max_lon]} #{extent[:max_lat]}"
               end
             end
           end
@@ -264,7 +269,14 @@ class WfsService
   def self.describe_feature_type(type_names: nil)
     # Parse type_names parameter - can be comma-separated
     requested_types = if type_names.present?
-                        type_names.split(',').map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
+                        # Limit string length to prevent DoS via large inputs
+                        if type_names.length > 1000
+                          Rails.logger.warn("typeNames parameter exceeds maximum length")
+                          []
+                        else
+                          # Limit number of splits to prevent DoS
+                          type_names.split(',', 10).map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
+                        end
                       else
                         feature_type_names
                       end
@@ -420,6 +432,160 @@ class WfsService
     builder.to_xml
   end
 
+  # def self.get_feature(bbox: nil, count: nil, result_type: nil, type_names: nil, base_url: nil)
+  #   # Parse type_names parameter - can be comma-separated
+  #   requested_types = if type_names.present?
+  #                       # Limit string length to prevent DoS via large inputs
+  #                       if type_names.length > 1000
+  #                         Rails.logger.warn("typeNames parameter exceeds maximum length")
+  #                         []
+  #                       else
+  #                         # Limit number of splits to prevent DoS
+  #                         type_names.split(',', 10).map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
+  #                       end
+  #                     else
+  #                       feature_type_names
+  #                     end
+
+  #   # If no valid types requested, default to all types
+  #   requested_types = feature_type_names if requested_types.empty?
+
+  #   # Start with unknown features
+  #   features = Feature.where(unknown: true)
+
+  #   # Build geometry type filter for requested types
+  #   all_geometry_types = requested_types.flat_map { |type| FEATURE_TYPES[type][:geometry_types] }
+  #   features = features.where('GeometryType(geom) IN (?)', all_geometry_types)
+
+  #   # Apply bounding box filter if provided
+  #   if bbox.present?
+  #     # Limit bbox string length to prevent DoS
+  #     if bbox.length > 200
+  #       Rails.logger.warn("BBOX parameter exceeds maximum length")
+  #       return build_empty_response
+  #     end
+
+  #     coords = bbox.split(',').map(&:to_f)
+  #     # Validate coordinates: must have exactly 4 values and all must be finite numbers
+  #     if coords.length == 4 && coords.all?(&:finite?)
+  #       minx, miny, maxx, maxy = coords
+
+  #       # Validate that min values are less than max values
+  #       if minx < maxx && miny < maxy
+  #         # Use ST_MakeEnvelope with parameterized query to prevent SQL injection
+  #         features = features.where(
+  #           'ST_Intersects(geom, ST_MakeEnvelope(?, ?, ?, ?, ?))',
+  #           minx, miny, maxx, maxy, 6344
+  #         )
+  #       else
+  #         # Invalid bounding box - return no results
+  #         Rails.logger.warn("Invalid BBOX parameter: min values must be less than max values")
+  #         return build_empty_response
+  #       end
+  #     else
+  #       # Invalid bbox format - return no results
+  #       Rails.logger.warn("Invalid BBOX parameter format or non-finite coordinates")
+  #       return build_empty_response
+  #     end
+  #   end
+
+  #   # Get total count before applying limit
+  #   number_matched = features.count
+
+  #   # Apply count limit if provided, enforcing maximum
+  #   if count.present?
+  #     requested_count = count.to_i
+
+  #     # Validate count is positive
+  #     if requested_count <= 0
+  #       Rails.logger.warn("Invalid COUNT parameter: must be positive")
+  #       return build_empty_response
+  #     end
+
+  #     # Enforce maximum count limit to prevent DoS
+  #     if requested_count > MAX_COUNT
+  #       Rails.logger.warn("COUNT parameter #{requested_count} exceeds maximum #{MAX_COUNT}, using maximum")
+  #       count_limit = MAX_COUNT
+  #     else
+  #       count_limit = requested_count
+  #     end
+  #   else
+  #     count_limit = DEFAULT_COUNT
+  #   end
+
+  #   features = features.limit(count_limit)
+
+  #   # Handle result type
+  #   result_type = result_type&.downcase || 'results'
+
+  #   # If hits, return just the count
+  #   if result_type == 'hits'
+  #     return build_hits_response(number_matched)
+  #   end
+
+  #   # Use ST_Multi to cast geometries and load features with casted geometry
+  #   features_with_multi_geom = features.select(
+  #     'features.id',
+  #     'features.label',
+  #     'features.notes',
+  #     'features.feature_class_id',
+  #     'features.created_at',
+  #     'features.updated_at',
+  #     'ST_Multi(geom) as geom',
+  #     'GeometryType(geom) as original_geom_type'
+  #   ).to_a
+
+  #   # Build schema location with all requested types
+  #   schema_location_parts = requested_types.map do |type|
+  #     if base_url.present?
+  #       "#{NAMESPACE} #{base_url}?service=WFS&version=2.0.0&request=DescribeFeatureType&typeName=#{type}"
+  #     else
+  #       "#{NAMESPACE} #{NAMESPACE}/schema"
+  #     end
+  #   end
+  #   schema_location = schema_location_parts.first # Use first one for simplicity
+
+  #   builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
+  #     xml['wfs'].FeatureCollection(
+  #       'xmlns:wfs' => 'http://www.opengis.net/wfs/2.0',
+  #       'xmlns:gml' => 'http://www.opengis.net/gml/3.2',
+  #       'xmlns:fdc' => NAMESPACE,
+  #       'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
+  #       'xsi:schemaLocation' => "#{schema_location} http://www.opengis.net/wfs/2.0 http://schemas.opengis.net/wfs/2.0/wfs.xsd http://www.opengis.net/gml/3.2 http://schemas.opengis.net/gml/3.2.1/gml.xsd",
+  #       'timeStamp' => Time.now.utc.iso8601,
+  #       'numberMatched' => number_matched.to_s,
+  #       'numberReturned' => features_with_multi_geom.length.to_s
+  #     ) do
+  #       features_with_multi_geom.each do |feature|
+  #         # Determine which feature type this belongs to based on original geometry type
+  #         original_type = feature.original_geom_type
+  #         feature_type_name = requested_types.find do |type|
+  #           FEATURE_TYPES[type][:geometry_types].include?(original_type)
+  #         end
+
+  #         # Skip if we couldn't determine the type (shouldn't happen with our query)
+  #         next unless feature_type_name
+
+  #         xml['wfs'].member do
+  #           xml['fdc'].send(feature_type_name, 'gml:id' => "feature.#{feature.id}") do
+  #             xml['fdc'].id feature.id
+  #             xml['fdc'].label feature.label if feature.label.present?
+  #             xml['fdc'].notes feature.notes if feature.notes.present?
+  #             xml['fdc'].feature_class_id feature.feature_class_id
+  #             xml['fdc'].created_at feature.created_at.utc.iso8601
+  #             xml['fdc'].updated_at feature.updated_at.utc.iso8601
+  #             xml['fdc'].geom do
+  #               # feature.geom is already ST_Multi() casted
+  #               build_gml_geometry(xml, feature.geom)
+  #             end
+  #           end
+  #         end
+  #       end
+  #     end
+  #   end
+  #   builder.to_xml
+  # end
+
   def self.build_hits_response(number_matched)
     builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
       xml['wfs'].FeatureCollection(
@@ -432,6 +598,76 @@ class WfsService
       )
     end
     builder.to_xml
+  end
+
+  def self.build_empty_response
+    builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
+      xml['wfs'].FeatureCollection(
+        'xmlns:wfs' => 'http://www.opengis.net/wfs/2.0',
+        'xmlns:gml' => 'http://www.opengis.net/gml/3.2',
+        'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation' => 'http://www.opengis.net/wfs/2.0 http://schemas.opengis.net/wfs/2.0/wfs.xsd http://www.opengis.net/gml/3.2 http://schemas.opengis.net/gml/3.2.1/gml.xsd',
+        'timeStamp' => Time.now.utc.iso8601,
+        'numberMatched' => '0',
+        'numberReturned' => '0'
+      )
+    end
+    builder.to_xml
+  end
+
+  def self.calculate_layer_extent(geometry_types)
+    # Build SQL query to calculate extent for this geometry type
+    # ST_Extent is an aggregate function, so we need to use a subquery
+    # ST_Extent returns a box with SRID 0, so we need to set it to 6344 before transforming
+    sql = <<-SQL
+      SELECT
+        ST_XMin(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as min_lon,
+        ST_YMin(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as min_lat,
+        ST_XMax(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as max_lon,
+        ST_YMax(ST_Transform(ST_SetSRID(extent_geom, 6344), 4326)) as max_lat
+      FROM (
+        SELECT ST_Extent(geom)::geometry as extent_geom
+        FROM features
+        WHERE unknown = true
+          AND GeometryType(geom) IN (?)
+      ) AS extent_query
+    SQL
+
+    # Execute the query
+    result = ActiveRecord::Base.connection.select_one(
+      ActiveRecord::Base.sanitize_sql_array([sql, geometry_types])
+    )
+
+    # If no features exist or extent calculation fails, return world bounds
+    if result && result['min_lon'] && result['min_lat'] && result['max_lon'] && result['max_lat']
+      # Add a small buffer (0.0001 degrees ~11 meters) to ensure all features fall within
+      # the advertised extent after rounding and coordinate transformation
+      buffer = 0.0001
+
+      {
+        min_lon: (result['min_lon'].to_f - buffer).round(6),
+        min_lat: (result['min_lat'].to_f - buffer).round(6),
+        max_lon: (result['max_lon'].to_f + buffer).round(6),
+        max_lat: (result['max_lat'].to_f + buffer).round(6)
+      }
+    else
+      # Default to world bounds if no features
+      {
+        min_lon: -180,
+        min_lat: -90,
+        max_lon: 180,
+        max_lat: 90
+      }
+    end
+  rescue StandardError => e
+    # Log error and return world bounds as fallback
+    Rails.logger.error("Failed to calculate layer extent: #{e.message}")
+    {
+      min_lon: -180,
+      min_lat: -90,
+      max_lon: 180,
+      max_lat: 90
+    }
   end
 
   def self.build_gml_geometry(xml, geom)
