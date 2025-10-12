@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 class WfsController < ActionController::API
-  # WFS endpoints are typically public - no authentication required
+  include ActionController::HttpAuthentication::Basic::ControllerMethods
+
+  before_action :authenticate
 
   def index
     request_type = params[:REQUEST] || params[:request]
@@ -28,6 +30,40 @@ class WfsController < ActionController::API
   end
 
   private
+
+  def authenticate
+    expected_username = ENV['WFS_USERNAME']
+    expected_password = ENV['WFS_PASSWORD']
+
+    unless expected_username.present? && expected_password.present?
+      Rails.logger.error('WFS authentication credentials not configured in environment variables')
+      render_authentication_error('WFS service is not properly configured')
+      return
+    end
+
+    authenticate_or_request_with_http_basic('WFS Service') do |username, password|
+      # Use secure comparison to prevent timing attacks
+      ActiveSupport::SecurityUtils.secure_compare(username, expected_username) &&
+        ActiveSupport::SecurityUtils.secure_compare(password, expected_password)
+    end
+  end
+
+  def render_authentication_error(message)
+    xml = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |builder|
+      builder['ows'].ExceptionReport(
+        'xmlns:ows' => 'http://www.opengis.net/ows/1.1',
+        'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation' => 'http://www.opengis.net/ows/1.1 http://schemas.opengis.net/ows/1.1.0/owsExceptionReport.xsd',
+        'version' => '2.0.0'
+      ) do
+        builder['ows'].Exception('exceptionCode' => 'NoApplicableCode') do
+          builder['ows'].ExceptionText message
+        end
+      end
+    end
+
+    render xml: xml.to_xml, status: :internal_server_error, content_type: 'application/xml'
+  end
 
   def handle_get_capabilities
     base_url = request.base_url + request.path

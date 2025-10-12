@@ -329,7 +329,14 @@ class WfsService
   def self.get_feature(bbox: nil, count: nil, result_type: nil, type_names: nil, base_url: nil)
     # Parse type_names parameter - can be comma-separated
     requested_types = if type_names.present?
-                        type_names.split(',').map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
+                        # Limit string length to prevent DoS via large inputs
+                        if type_names.length > 1000
+                          Rails.logger.warn("typeNames parameter exceeds maximum length")
+                          []
+                        else
+                          # Limit number of splits to prevent DoS
+                          type_names.split(',', 10).map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
+                        end
                       else
                         feature_type_names
                       end
@@ -346,19 +353,46 @@ class WfsService
 
     # Apply bounding box filter if provided
     if bbox.present?
-      coords = bbox.split(',').map(&:to_f)
-      if coords.length == 4
-        minx, miny, maxx, maxy = coords
-        bbox_wkt = "POLYGON((#{minx} #{miny}, #{maxx} #{miny}, #{maxx} #{maxy}, #{minx} #{maxy}, #{minx} #{miny}))"
-        features = features.where('ST_Intersects(geom, ST_GeomFromText(?, ?))', bbox_wkt, 6344)
+      # Limit bbox string length to prevent DoS
+      if bbox.length > 200
+        Rails.logger.warn("BBOX parameter exceeds maximum length")
+      else
+        coords = bbox.split(',').map(&:to_f)
+        # Validate coordinates: must have exactly 4 values and all must be finite numbers
+        if coords.length == 4 && coords.all?(&:finite?)
+          minx, miny, maxx, maxy = coords
+          # Use ST_MakeEnvelope with parameterized query to prevent SQL injection
+          features = features.where(
+            'ST_Intersects(geom, ST_MakeEnvelope(?, ?, ?, ?, ?))',
+            minx, miny, maxx, maxy, 6344
+          )
+        else
+          Rails.logger.warn("Invalid BBOX parameter format or non-finite coordinates")
+        end
       end
     end
 
     # Get total count before applying limit
     number_matched = features.count
 
-    # Apply count limit if provided
-    count_limit = count.present? ? count.to_i : DEFAULT_COUNT
+    # Apply count limit if provided, enforcing maximum
+    if count.present?
+      requested_count = count.to_i
+      # Enforce maximum count limit to prevent DoS
+      if requested_count > MAX_COUNT
+        Rails.logger.warn("COUNT parameter #{requested_count} exceeds maximum #{MAX_COUNT}, using maximum")
+        count_limit = MAX_COUNT
+      elsif requested_count > 0
+        count_limit = requested_count
+      else
+        # Invalid count, use default
+        Rails.logger.warn("Invalid COUNT parameter: must be positive, using default")
+        count_limit = DEFAULT_COUNT
+      end
+    else
+      count_limit = DEFAULT_COUNT
+    end
+
     features = features.limit(count_limit)
 
     # Handle result type
@@ -431,160 +465,6 @@ class WfsService
     end
     builder.to_xml
   end
-
-  # def self.get_feature(bbox: nil, count: nil, result_type: nil, type_names: nil, base_url: nil)
-  #   # Parse type_names parameter - can be comma-separated
-  #   requested_types = if type_names.present?
-  #                       # Limit string length to prevent DoS via large inputs
-  #                       if type_names.length > 1000
-  #                         Rails.logger.warn("typeNames parameter exceeds maximum length")
-  #                         []
-  #                       else
-  #                         # Limit number of splits to prevent DoS
-  #                         type_names.split(',', 10).map(&:strip).select { |t| FEATURE_TYPES.key?(t) }
-  #                       end
-  #                     else
-  #                       feature_type_names
-  #                     end
-
-  #   # If no valid types requested, default to all types
-  #   requested_types = feature_type_names if requested_types.empty?
-
-  #   # Start with unknown features
-  #   features = Feature.where(unknown: true)
-
-  #   # Build geometry type filter for requested types
-  #   all_geometry_types = requested_types.flat_map { |type| FEATURE_TYPES[type][:geometry_types] }
-  #   features = features.where('GeometryType(geom) IN (?)', all_geometry_types)
-
-  #   # Apply bounding box filter if provided
-  #   if bbox.present?
-  #     # Limit bbox string length to prevent DoS
-  #     if bbox.length > 200
-  #       Rails.logger.warn("BBOX parameter exceeds maximum length")
-  #       return build_empty_response
-  #     end
-
-  #     coords = bbox.split(',').map(&:to_f)
-  #     # Validate coordinates: must have exactly 4 values and all must be finite numbers
-  #     if coords.length == 4 && coords.all?(&:finite?)
-  #       minx, miny, maxx, maxy = coords
-
-  #       # Validate that min values are less than max values
-  #       if minx < maxx && miny < maxy
-  #         # Use ST_MakeEnvelope with parameterized query to prevent SQL injection
-  #         features = features.where(
-  #           'ST_Intersects(geom, ST_MakeEnvelope(?, ?, ?, ?, ?))',
-  #           minx, miny, maxx, maxy, 6344
-  #         )
-  #       else
-  #         # Invalid bounding box - return no results
-  #         Rails.logger.warn("Invalid BBOX parameter: min values must be less than max values")
-  #         return build_empty_response
-  #       end
-  #     else
-  #       # Invalid bbox format - return no results
-  #       Rails.logger.warn("Invalid BBOX parameter format or non-finite coordinates")
-  #       return build_empty_response
-  #     end
-  #   end
-
-  #   # Get total count before applying limit
-  #   number_matched = features.count
-
-  #   # Apply count limit if provided, enforcing maximum
-  #   if count.present?
-  #     requested_count = count.to_i
-
-  #     # Validate count is positive
-  #     if requested_count <= 0
-  #       Rails.logger.warn("Invalid COUNT parameter: must be positive")
-  #       return build_empty_response
-  #     end
-
-  #     # Enforce maximum count limit to prevent DoS
-  #     if requested_count > MAX_COUNT
-  #       Rails.logger.warn("COUNT parameter #{requested_count} exceeds maximum #{MAX_COUNT}, using maximum")
-  #       count_limit = MAX_COUNT
-  #     else
-  #       count_limit = requested_count
-  #     end
-  #   else
-  #     count_limit = DEFAULT_COUNT
-  #   end
-
-  #   features = features.limit(count_limit)
-
-  #   # Handle result type
-  #   result_type = result_type&.downcase || 'results'
-
-  #   # If hits, return just the count
-  #   if result_type == 'hits'
-  #     return build_hits_response(number_matched)
-  #   end
-
-  #   # Use ST_Multi to cast geometries and load features with casted geometry
-  #   features_with_multi_geom = features.select(
-  #     'features.id',
-  #     'features.label',
-  #     'features.notes',
-  #     'features.feature_class_id',
-  #     'features.created_at',
-  #     'features.updated_at',
-  #     'ST_Multi(geom) as geom',
-  #     'GeometryType(geom) as original_geom_type'
-  #   ).to_a
-
-  #   # Build schema location with all requested types
-  #   schema_location_parts = requested_types.map do |type|
-  #     if base_url.present?
-  #       "#{NAMESPACE} #{base_url}?service=WFS&version=2.0.0&request=DescribeFeatureType&typeName=#{type}"
-  #     else
-  #       "#{NAMESPACE} #{NAMESPACE}/schema"
-  #     end
-  #   end
-  #   schema_location = schema_location_parts.first # Use first one for simplicity
-
-  #   builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|
-  #     xml['wfs'].FeatureCollection(
-  #       'xmlns:wfs' => 'http://www.opengis.net/wfs/2.0',
-  #       'xmlns:gml' => 'http://www.opengis.net/gml/3.2',
-  #       'xmlns:fdc' => NAMESPACE,
-  #       'xmlns:xsi' => 'http://www.w3.org/2001/XMLSchema-instance',
-  #       'xsi:schemaLocation' => "#{schema_location} http://www.opengis.net/wfs/2.0 http://schemas.opengis.net/wfs/2.0/wfs.xsd http://www.opengis.net/gml/3.2 http://schemas.opengis.net/gml/3.2.1/gml.xsd",
-  #       'timeStamp' => Time.now.utc.iso8601,
-  #       'numberMatched' => number_matched.to_s,
-  #       'numberReturned' => features_with_multi_geom.length.to_s
-  #     ) do
-  #       features_with_multi_geom.each do |feature|
-  #         # Determine which feature type this belongs to based on original geometry type
-  #         original_type = feature.original_geom_type
-  #         feature_type_name = requested_types.find do |type|
-  #           FEATURE_TYPES[type][:geometry_types].include?(original_type)
-  #         end
-
-  #         # Skip if we couldn't determine the type (shouldn't happen with our query)
-  #         next unless feature_type_name
-
-  #         xml['wfs'].member do
-  #           xml['fdc'].send(feature_type_name, 'gml:id' => "feature.#{feature.id}") do
-  #             xml['fdc'].id feature.id
-  #             xml['fdc'].label feature.label if feature.label.present?
-  #             xml['fdc'].notes feature.notes if feature.notes.present?
-  #             xml['fdc'].feature_class_id feature.feature_class_id
-  #             xml['fdc'].created_at feature.created_at.utc.iso8601
-  #             xml['fdc'].updated_at feature.updated_at.utc.iso8601
-  #             xml['fdc'].geom do
-  #               # feature.geom is already ST_Multi() casted
-  #               build_gml_geometry(xml, feature.geom)
-  #             end
-  #           end
-  #         end
-  #       end
-  #     end
-  #   end
-  #   builder.to_xml
-  # end
 
   def self.build_hits_response(number_matched)
     builder = Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |xml|

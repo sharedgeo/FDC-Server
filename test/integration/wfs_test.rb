@@ -5,9 +5,18 @@ require 'test_helper'
 class WfsTest < ActionDispatch::IntegrationTest
   fixtures :all
 
+  # Helper method for Basic Auth credentials
+  def wfs_auth_headers
+    username = ENV['WFS_USERNAME'] || 'wfs_user'
+    password = ENV['WFS_PASSWORD'] || 'wfs_password'
+    {
+      'HTTP_AUTHORIZATION' => ActionController::HttpAuthentication::Basic.encode_credentials(username, password)
+    }
+  end
+
   # GetCapabilities Tests
   test 'GetCapabilities returns valid XML with correct structure' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     assert_match %r{application/xml}, response.content_type
@@ -51,7 +60,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetCapabilities works with lowercase parameters' do
-    get '/wfs', params: { service: 'wfs', request: 'getcapabilities' }
+    get '/wfs', params: { service: 'wfs', request: 'getcapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -61,7 +70,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetCapabilities works via POST' do
-    post '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }
+    post '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -72,7 +81,7 @@ class WfsTest < ActionDispatch::IntegrationTest
 
   # DescribeFeatureType Tests
   test 'DescribeFeatureType returns valid XSD schema with all three types when no typeNames specified' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'DescribeFeatureType' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'DescribeFeatureType' }, headers: wfs_auth_headers
 
     assert_response :success
     assert_match %r{application/gml\+xml}, response.content_type
@@ -108,7 +117,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'DescribeFeatureType returns single type when typeNames specified' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'DescribeFeatureType', TYPENAMES: 'unknown_multipoint' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'DescribeFeatureType', TYPENAMES: 'unknown_multipoint' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -125,7 +134,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'DescribeFeatureType works with lowercase parameters' do
-    get '/wfs', params: { service: 'wfs', request: 'describefeaturetype' }
+    get '/wfs', params: { service: 'wfs', request: 'describefeaturetype' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -137,7 +146,7 @@ class WfsTest < ActionDispatch::IntegrationTest
 
   # GetFeature Tests
   test 'GetFeature returns GML FeatureCollection with all unknown features from all layers' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature' }, headers: wfs_auth_headers
 
     assert_response :success
     assert_match %r{application/gml\+xml}, response.content_type
@@ -189,7 +198,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature does not return features with unknown=false' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -213,7 +222,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   test 'GetFeature with BBOX filters features spatially' do
     # BBOX that should only include the first unknown feature (100-200 range)
     bbox = '50,50,250,250'
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', BBOX: bbox }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', BBOX: bbox }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -236,7 +245,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   test 'GetFeature with BBOX that excludes all features returns empty collection' do
     # BBOX that doesn't intersect with any features
     bbox = '9000,9000,9100,9100'
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', BBOX: bbox }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', BBOX: bbox }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -251,7 +260,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature works with lowercase parameters' do
-    get '/wfs', params: { service: 'wfs', request: 'getfeature' }
+    get '/wfs', params: { service: 'wfs', request: 'getfeature' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -262,7 +271,7 @@ class WfsTest < ActionDispatch::IntegrationTest
 
   # Error Handling Tests
   test 'returns error for missing SERVICE parameter' do
-    get '/wfs', params: { REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :bad_request
     xml = Nokogiri::XML(response.body)
@@ -273,7 +282,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'returns error for invalid SERVICE parameter' do
-    get '/wfs', params: { SERVICE: 'WMS', REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { SERVICE: 'WMS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :bad_request
     xml = Nokogiri::XML(response.body)
@@ -284,7 +293,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'returns error for unsupported REQUEST operation' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'UnsupportedOperation' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'UnsupportedOperation' }, headers: wfs_auth_headers
 
     assert_response :bad_request
     xml = Nokogiri::XML(response.body)
@@ -295,7 +304,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'returns error for missing REQUEST parameter' do
-    get '/wfs', params: { SERVICE: 'WFS' }
+    get '/wfs', params: { SERVICE: 'WFS' }, headers: wfs_auth_headers
 
     assert_response :bad_request
     xml = Nokogiri::XML(response.body)
@@ -306,7 +315,7 @@ class WfsTest < ActionDispatch::IntegrationTest
 
   # Enhanced WFS 2.0 Tests
   test 'GetCapabilities includes conformance constraints' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -325,7 +334,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetCapabilities includes operation parameters' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -343,7 +352,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetCapabilities includes Filter Capabilities conformance' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -363,7 +372,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetCapabilities includes scalar capabilities' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -378,7 +387,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetCapabilities includes extended spatial operators' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetCapabilities' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -394,7 +403,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature with count parameter limits results' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', COUNT: 2 }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', COUNT: 2 }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -414,7 +423,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature with resultType=hits returns count only' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', RESULTTYPE: 'hits' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', RESULTTYPE: 'hits' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -432,7 +441,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature includes schema location pointing to DescribeFeatureType' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -448,7 +457,7 @@ class WfsTest < ActionDispatch::IntegrationTest
 
   # Geometry Type Filtering Tests
   test 'GetFeature with typeNames=unknown_multipoint returns only point features' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -472,7 +481,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature with typeNames=unknown_multiline returns only line features' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multiline' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multiline' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -496,7 +505,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature with typeNames=unknown_multipolygon returns only polygon features' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipolygon' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipolygon' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -520,7 +529,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature with multiple typeNames returns features from both types' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint,unknown_multiline' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint,unknown_multiline' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -542,7 +551,7 @@ class WfsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GetFeature casts Point to MultiPoint' do
-    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint' }
+    get '/wfs', params: { SERVICE: 'WFS', REQUEST: 'GetFeature', TYPENAMES: 'unknown_multipoint' }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
@@ -572,7 +581,7 @@ class WfsTest < ActionDispatch::IntegrationTest
       REQUEST: 'GetFeature',
       TYPENAMES: 'unknown_multipoint',
       BBOX: '100,100,300,300'
-    }
+    }, headers: wfs_auth_headers
 
     assert_response :success
     xml = Nokogiri::XML(response.body)
