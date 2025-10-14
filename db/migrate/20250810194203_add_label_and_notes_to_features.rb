@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AddLabelAndNotesToFeatures < ActiveRecord::Migration[7.1]
   def change
     add_column :features, :label, :string, limit: 50
