@@ -66,69 +66,69 @@ end
   color_mapserv: '243 176 196',
   color_hex: '#f3b0c4'
 },
-{
-  id: 'electric',
-  code: 'ELE',
-  name: 'Electric',
-  color_mapserv: '255 0 0',
-  color_hex: '#ff0000'
-},
-{
-  id: 'oil_gas_steam',
-  code: 'OGS',
-  name: 'Oil, Gas & Steam',
-  color_mapserv: '248 239 0',
-  color_hex: '#f8ef00'
-},
-{
-  id: 'comm_cable_conduit',
-  code: 'COM',
-  name: 'Communication, Cable, Conduit',
-  color_mapserv: '211 114 46',
-  color_hex: '#d3722e'
-},
-{
-  id: 'potable_water',
-  code: 'WAT',
-  name: 'Potable Water',
-  color_mapserv: '17 108 179',
-  color_hex: '#116cb3'
-},
-{
-  id: 'reclaimed_water',
-  code: 'REC',
-  name: 'Reclaimed Water',
-  color_mapserv: '150 69 125',
-  color_hex: '#96457d'
-},
-{
-  id: 'sewers_drains',
-  code: 'SEW',
-  name: 'Sewers, Drains',
-  color_mapserv: '49 145 58',
-  color_hex: '#31913a'
-},
-{
-  id: 'reference',
-  code: 'REF',
-  name: 'Reference',
-  color_mapserv: '128 128 128',
-  color_hex: '#808080'
-},
-{
-  id: 'proposed_excavation',
-  code: 'PEL',
-  name: 'Proposed Excavation Limits or Route',
-  color_mapserv: '255 255 255',
-  color_hex: '#ffffff'
-},
-{
-  id: 'unknown',
-  code: 'UNK',
-  name: 'Unknown',
-  color_mapserv: '0 0  0',
-  color_hex: '#000000'
-}].each do |fc|
+ {
+   id: 'electric',
+   code: 'ELE',
+   name: 'Electric',
+   color_mapserv: '255 0 0',
+   color_hex: '#ff0000'
+ },
+ {
+   id: 'oil_gas_steam',
+   code: 'OGS',
+   name: 'Oil, Gas & Steam',
+   color_mapserv: '248 239 0',
+   color_hex: '#f8ef00'
+ },
+ {
+   id: 'comm_cable_conduit',
+   code: 'COM',
+   name: 'Communication, Cable, Conduit',
+   color_mapserv: '211 114 46',
+   color_hex: '#d3722e'
+ },
+ {
+   id: 'potable_water',
+   code: 'WAT',
+   name: 'Potable Water',
+   color_mapserv: '17 108 179',
+   color_hex: '#116cb3'
+ },
+ {
+   id: 'reclaimed_water',
+   code: 'REC',
+   name: 'Reclaimed Water',
+   color_mapserv: '150 69 125',
+   color_hex: '#96457d'
+ },
+ {
+   id: 'sewers_drains',
+   code: 'SEW',
+   name: 'Sewers, Drains',
+   color_mapserv: '49 145 58',
+   color_hex: '#31913a'
+ },
+ {
+   id: 'reference',
+   code: 'REF',
+   name: 'Reference',
+   color_mapserv: '128 128 128',
+   color_hex: '#808080'
+ },
+ {
+   id: 'proposed_excavation',
+   code: 'PEL',
+   name: 'Proposed Excavation Limits or Route',
+   color_mapserv: '255 255 255',
+   color_hex: '#ffffff'
+ },
+ {
+   id: 'unknown',
+   code: 'UNK',
+   name: 'Unknown',
+   color_mapserv: '0 0  0',
+   color_hex: '#000000'
+ }].each do |fc|
   FeatureClass.find_or_create_by(id: fc[:id]) do |feature_class|
     feature_class.assign_attributes(fc)
   end
