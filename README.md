@@ -46,3 +46,7 @@ A Ruby on Rails based api server
 
 *   `RAILS_ENV=test bundle exec rails db:drop db:create db:schema:load`
 *   `bin/rails test`
+
+### License
+
+The files in this project are released under the [GPL-3.0-or-later](LICENSE.md) license.
