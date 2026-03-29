@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FeatureClassFk < ActiveRecord::Migration[7.1]
   def change
     add_reference :features, :feature_class, type: :text, null: true, foreign_key: { to_table: :feature_class }

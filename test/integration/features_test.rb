@@ -16,8 +16,10 @@ class FeaturesTest < ActionDispatch::IntegrationTest
                          [-93.256283955978, 44.55940486098327],
                          [-93.26460625534939, 44.55938588334465]]]] }
 
-    @feature_params = { ticket_id: @ticket.id, geom: @feature_geom, label: 'Test Label', notes: 'Test notes.', feature_class_id: 'survey' }
-    @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((10 10, 20 20, 30 30, 10 10)))', unknown: false)
+    @feature_params = { ticket_id: @ticket.id, geom: @feature_geom, label: 'Test Label', notes: 'Test notes.',
+                        feature_class_id: 'survey' }
+    @feature = Feature.create!(user: @user, ticket: @ticket, geom: 'MULTIPOLYGON (((10 10, 20 20, 30 30, 10 10)))',
+                               unknown: false)
   end
 
   # POST /v1/features
@@ -180,7 +182,8 @@ class FeaturesTest < ActionDispatch::IntegrationTest
     JsonWebToken.stub :verify, decoded_token do
       put "/v1/features/#{@feature.id}",
           headers: { 'Authorization' => "Bearer #{@valid_token}" },
-          params: { feature: { geom: updated_geom, label: updated_label, notes: updated_notes, feature_class_id: updated_feature_class_id, unknown: updated_unknown } },
+          params: { feature: { geom: updated_geom, label: updated_label, notes: updated_notes,
+                               feature_class_id: updated_feature_class_id, unknown: updated_unknown } },
           as: :json
     end
 

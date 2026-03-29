@@ -3,17 +3,3 @@
 # Avoid CORS issues when API is called from the frontend app.
 # Handle Cross-Origin Resource Sharing (CORS) in order to accept cross-origin Ajax requests.
 
-# Read more: https://github.com/cyu/rack-cors
-
-Rails.application.config.middleware.insert_before 0, Rack::Cors do
-  allow do
-    # For development, you can allow all origins. For production, you should
-    # restrict this to your frontend's domain for security.
-    # e.g. origins 'https://your-frontend-app.com'
-    origins "*"
-
-    resource "*",
-      headers: :any,
-      methods: [:get, :post, :put, :patch, :delete, :options, :head]
-  end
-end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FeatureClasses < ActiveRecord::Migration[7.1]
   def change
     create_table :feature_class, id: false do |t|
