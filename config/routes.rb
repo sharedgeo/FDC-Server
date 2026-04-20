@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
+  # WFS (Web Feature Service) endpoint
+  match '/wfs', to: 'wfs#index', via: [:get, :post]
+
   scope '/v1' do
     post "/debug_jwt", to: "jwt_debugger#debug"
     get "/profile", to: "profiles#show"

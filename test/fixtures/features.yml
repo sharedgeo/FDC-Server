@@ -1,0 +1,111 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+unknown_one:
+  user: two
+  ticket: two
+  feature_class_id: survey
+  geom: "SRID=6344;MULTIPOLYGON(((100 100, 200 100, 200 200, 100 200, 100 100)))"
+  label: "Unknown Survey Feature 1"
+  notes: "This is an unknown feature for testing"
+  unknown: true
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+unknown_two:
+  user: two
+  ticket: two
+  feature_class_id: electric
+  geom: "SRID=6344;MULTIPOLYGON(((300 300, 400 300, 400 400, 300 400, 300 300)))"
+  label: "Unknown Electric Feature"
+  notes: "Another unknown feature"
+  unknown: true
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+unknown_three:
+  user: two
+  ticket: two
+  feature_class_id: reference
+  geom: "SRID=6344;MULTIPOLYGON(((500 500, 600 500, 600 600, 500 600, 500 500)))"
+  label: "Unknown Reference"
+  notes: "Third unknown feature"
+  unknown: true
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+known_one:
+  user: two
+  ticket: two
+  feature_class_id: survey
+  geom: "SRID=6344;MULTIPOLYGON(((1000 1000, 1100 1000, 1100 1100, 1000 1100, 1000 1000)))"
+  label: "Known Survey Feature"
+  notes: "This is a known feature - should not appear in WFS"
+  unknown: false
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+known_two:
+  user: two
+  ticket: two
+  feature_class_id: electric
+  geom: "SRID=6344;MULTIPOLYGON(((2000 2000, 2100 2000, 2100 2100, 2000 2100, 2000 2000)))"
+  label: "Known Electric Feature"
+  notes: "Another known feature - should not appear in WFS"
+  unknown: false
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+unknown_point_one:
+  user: two
+  ticket: two
+  feature_class_id: survey
+  geom: "SRID=6344;POINT(150 150)"
+  label: "Unknown Point Feature 1"
+  notes: "Point geometry for testing multipoint layer"
+  unknown: true
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+unknown_point_two:
+  user: two
+  ticket: two
+  feature_class_id: reference
+  geom: "SRID=6344;MULTIPOINT((250 250), (260 260))"
+  label: "Unknown MultiPoint Feature"
+  notes: "MultiPoint geometry for testing multipoint layer"
+  unknown: true
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+unknown_line_one:
+  user: two
+  ticket: two
+  feature_class_id: electric
+  geom: "SRID=6344;LINESTRING(100 100, 200 200, 300 150)"
+  label: "Unknown Line Feature 1"
+  notes: "LineString geometry for testing multiline layer"
+  unknown: true
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+unknown_line_two:
+  user: two
+  ticket: two
+  feature_class_id: electric
+  geom: "SRID=6344;MULTILINESTRING((400 400, 450 450), (500 500, 550 550))"
+  label: "Unknown MultiLineString Feature"
+  notes: "MultiLineString geometry for testing multiline layer"
+  unknown: true
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
+
+known_point:
+  user: two
+  ticket: two
+  feature_class_id: survey
+  geom: "SRID=6344;POINT(3000 3000)"
+  label: "Known Point Feature"
+  notes: "Known point - should not appear in WFS"
+  unknown: false
+  created_at: <%= Time.current.to_s %>
+  updated_at: <%= Time.current.to_s %>
